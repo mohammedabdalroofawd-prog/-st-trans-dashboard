@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ST Trans – Daily Loading Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Rajdhani:wght@600;700&display=swap');
+:root{
+  --bg:#071a0e;--panel:#0d2416;--panel2:#122d1c;--border:#1a4a2a;
+  --g1:#00e676;--g2:#00c853;--g3:#69f0ae;--g4:#b9f6ca;
+  --acc:#00e676;--acc2:#76ff03;--acc3:#ffea00;--acc4:#ff6d00;
+  --red:#ff1744;--blue:#00b0ff;--text:#e8f5e9;--muted:#4a7a57;--good:#00e676;--warn:#ffea00;--bad:#ff1744;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── LOCK SCREEN ── */
+#lockScreen{position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at center,#0a2010 0%,#030d06 100%);display:flex;align-items:center;justify-content:center;flex-direction:column}
+.lc{background:#0d2416;border:1px solid rgba(0,230,118,0.3);border-radius:20px;padding:48px 40px;max-width:420px;width:90%;text-align:center;box-shadow:0 0 60px rgba(0,230,118,0.08)}
+.l-logo{width:70px;height:70px;background:linear-gradient(135deg,#00e676,#00c853);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 20px;box-shadow:0 0 30px rgba(0,230,118,0.35)}
+.l-title{font-family:'Rajdhani',sans-serif;font-size:2rem;color:#00e676;letter-spacing:3px;margin-bottom:4px}
+.l-sub{font-size:.8rem;color:var(--muted);margin-bottom:30px;line-height:1.6}
+.l-iw{position:relative;margin-bottom:14px}
+.l-inp{width:100%;background:#071a0e;border:1px solid var(--border);color:var(--text);padding:14px 46px 14px 18px;border-radius:10px;font-size:1rem;font-family:'Cairo',sans-serif;outline:none;transition:border-color .2s;letter-spacing:2px}
+.l-inp:focus{border-color:#00e676;box-shadow:0 0 0 3px rgba(0,230,118,0.1)}
+.l-eye{position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:17px}
+.l-err{color:#ff1744;font-size:.8rem;min-height:18px;margin-bottom:8px;display:none}
+.l-btn{width:100%;background:linear-gradient(135deg,#00e676,#00c853);border:none;color:#071a0e;padding:14px;border-radius:10px;font-family:'Cairo',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 8px 24px rgba(0,230,118,0.25);margin-bottom:10px}
+.l-btn:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(0,230,118,0.35)}
+.l-hint{font-size:.73rem;color:#1e4a28;margin-top:14px}
+.l-div{border:none;border-top:1px solid var(--border);margin:18px 0}
+
+/* ── HEADER ── */
+header{background:linear-gradient(135deg,#071a0e,#0f2d18,#071a0e);border-bottom:2px solid rgba(0,230,118,0.3);padding:13px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,0.5);flex-wrap:wrap;gap:10px}
+.h-logo{width:46px;height:46px;background:linear-gradient(135deg,#00e676,#00c853);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 16px rgba(0,230,118,0.4);font-weight:800;color:#071a0e;font-family:'Rajdhani',sans-serif}
+.h-titles{margin-left:12px}
+.h-t1{font-family:'Rajdhani',sans-serif;font-size:1.5rem;color:#00e676;letter-spacing:2px}
+.h-t2{font-size:.75rem;color:var(--muted);margin-top:1px}
+.h-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.admin-b{display:none;align-items:center;gap:6px;background:rgba(255,234,0,0.1);border:1px solid rgba(255,234,0,0.35);color:#ffea00;padding:5px 12px;border-radius:20px;font-size:.76rem;font-weight:700}
+.live-b{display:flex;align-items:center;gap:6px;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.3);color:#00e676;padding:5px 12px;border-radius:20px;font-size:.76rem}
+.live-dot{width:7px;height:7px;background:#00e676;border-radius:50%;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+#updT{font-size:.73rem;color:var(--muted)}
+.ref-btn{background:linear-gradient(135deg,#00e676,#00c853);border:none;color:#071a0e;padding:9px 18px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(0,230,118,0.25)}
+.ref-btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,230,118,0.35)}
+.ref-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.spinner{display:none;width:15px;height:15px;border:2px solid rgba(0,0,0,0.2);border-top-color:#071a0e;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#xlsxInput{display:none}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;padding:14px 24px 0;border-bottom:1px solid var(--border);background:var(--bg)}
+.tab{padding:9px 20px;border-radius:8px 8px 0 0;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--muted);border:1px solid transparent;border-bottom:none;transition:all .2s}
+.tab.active{background:var(--panel);color:#00e676;border-color:var(--border)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* ── MAIN ── */
+main{padding:18px 22px;display:flex;flex-direction:column;gap:16px}
+.tab-page{display:none}
+.tab-page.active{display:flex;flex-direction:column;gap:16px}
+
+/* ── ALERT ── */
+.alert{background:linear-gradient(90deg,rgba(0,230,118,0.06),rgba(118,255,3,0.04));border:1px solid rgba(0,230,118,0.2);border-radius:10px;padding:10px 18px;display:flex;align-items:center;gap:10px;font-size:.8rem;flex-wrap:wrap}
+.alert b{color:#00e676}
+
+/* ── GRID HELPERS ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
+
+/* ── KPI ── */
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:17px 15px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s}
+.kpi:hover{transform:translateY(-2px);border-color:rgba(0,230,118,0.3)}
+.kpi-bar{position:absolute;top:0;left:0;right:0;height:3px;border-radius:13px 13px 0 0}
+.bg{background:linear-gradient(90deg,#00e676,#00c853)}
+.bb{background:linear-gradient(90deg,#00b0ff,#0081cb)}
+.ba{background:linear-gradient(90deg,#ffea00,#f9a825)}
+.br{background:linear-gradient(90deg,#ff6d00,#e65100)}
+.bp{background:linear-gradient(90deg,#76ff03,#558b2f)}
+.kpi-em{font-size:20px;margin-bottom:8px}
+.kpi-val{font-family:'Rajdhani',sans-serif;font-size:1.85rem;font-weight:700;line-height:1}
+.kpi-val.cg{color:#00e676}.kpi-val.cb{color:#00b0ff}.kpi-val.ca{color:#ffea00}.kpi-val.cr{color:#ff6d00}.kpi-val.cp{color:#76ff03}
+.kpi-lbl{font-size:.68rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.8px}
+.kpi-tgt{font-size:.68rem;color:#1e4a28;margin-top:3px}
+.prog-bar{height:4px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:9px}
+.prog-fill{height:100%;border-radius:4px;transition:width 1.2s ease}
+.prog-lbl{font-size:.64rem;color:var(--muted);margin-top:3px;display:flex;justify-content:space-between}
+
+/* ── PANEL ── */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:16px}
+.pt{font-size:.78rem;color:#00e676;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:13px;display:flex;align-items:center;gap:7px}
+.pt::before{content:'';width:3px;height:14px;background:#00e676;border-radius:2px;display:inline-block}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;max-height:320px;overflow-y:auto}
+.tbl-wrap::-webkit-scrollbar{width:4px;height:4px}
+.tbl-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+thead th{position:sticky;top:0;background:#0a2010;padding:9px 12px;text-align:left;color:var(--muted);font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:8px 12px;border-bottom:1px solid rgba(26,74,42,0.4);color:#c8e6c9;white-space:nowrap}
+tbody tr:hover td{background:rgba(0,230,118,0.04)}
+tbody tr:last-child td{border-bottom:none}
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:700}
+.pg{background:rgba(0,230,118,0.12);color:#00e676;border:1px solid rgba(0,230,118,0.2)}
+.pb{background:rgba(0,176,255,0.12);color:#00b0ff;border:1px solid rgba(0,176,255,0.2)}
+.pa{background:rgba(255,234,0,0.12);color:#ffea00;border:1px solid rgba(255,234,0,0.2)}
+.pr{background:rgba(255,109,0,0.12);color:#ff6d00;border:1px solid rgba(255,109,0,0.2)}
+
+/* ── ACHIEVEMENT ── */
+.ach-g{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.ach{background:var(--panel2);border-radius:10px;padding:12px;border-left:3px solid #00e676}
+.ach.wa{border-left-color:#ffea00}.ach.ba2{border-left-color:#ff1744}.ach.ga{border-left-color:#00e676}
+.ach-l{font-size:.67rem;color:var(--muted);margin-bottom:3px;text-transform:uppercase}
+.ach-v{font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700}
+.ach-p{font-size:.69rem;margin-top:3px}
+
+/* ── DRIVER/UNIT CARD ── */
+.du-list{display:flex;flex-direction:column;gap:8px}
+.du-item{background:var(--panel2);border-radius:9px;padding:9px 12px;display:flex;align-items:center;gap:10px;transition:background .2s}
+.du-item:hover{background:#1a3a22}
+.du-rank{font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;color:var(--muted);width:24px;text-align:center}
+.du-rank.top{color:#ffea00}
+.du-info{flex:1;min-width:0}
+.du-name{font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#c8e6c9}
+.du-sub{font-size:.65rem;color:var(--muted)}
+.du-stats{text-align:right;white-space:nowrap}
+.du-val{font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:700;color:#00e676}
+.du-unit{font-size:.65rem;color:var(--muted)}
+
+/* ── ROUTE PERF ── */
+.route-perf{display:flex;flex-direction:column;gap:9px}
+.rp-item{background:var(--panel2);border-radius:9px;padding:11px 14px}
+.rp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.rp-name{font-size:.78rem;font-weight:700;color:#00e676}
+.rp-pct{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700}
+.rp-bar{height:5px;background:var(--bg);border-radius:5px;overflow:hidden;margin-bottom:5px}
+.rp-fill{height:100%;border-radius:5px}
+.rp-stats{display:flex;gap:14px;font-size:.68rem;color:var(--muted)}
+.rp-stat b{color:#a5d6a7}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:20px;right:20px;z-index:9999;background:#0d2416;border:1px solid #00e676;color:var(--text);padding:10px 16px;border-radius:9px;font-size:.8rem;box-shadow:0 8px 24px rgba(0,0,0,0.5);transition:opacity .4s;pointer-events:none;font-family:'Cairo',sans-serif}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){.g5{grid-template-columns:repeat(3,1fr)}.g3{grid-template-columns:1fr 1fr}.g4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.g5,.g4,.g3,.g2{grid-template-columns:1fr}main{padding:10px 10px}.tabs{padding:10px 10px 0;overflow-x:auto}.tab{white-space:nowrap;padding:7px 14px;font-size:.75rem}}
+</style>
+</head>
+<body>
+
+<!-- ── LOCK SCREEN ── -->
+<div id="lockScreen">
+  <div class="lc">
+    <div class="l-logo">🚛</div>
+    <div class="l-title">ST TRANS</div>
+    <div class="l-sub">Daily Loading Dashboard<br><span style="color:#1e4a28">Authorized Access Only</span></div>
+    <div class="l-iw">
+      <input class="l-inp" type="password" id="pInp" placeholder="Enter password…" onkeydown="if(event.key==='Enter')chkPass()">
+      <button class="l-eye" onclick="togEye()">👁</button>
+    </div>
+    <div class="l-err" id="lErr">⚠ Incorrect password. Try again.</div>
+    <button class="l-btn" onclick="chkPass()">🔓 Access Dashboard</button>
+    <div class="l-div"></div>
+    <div class="l-hint">Contact your administrator if you need access</div>
+  </div>
+</div>
+
+<!-- ── HEADER ── -->
+<header>
+  <div style="display:flex;align-items:center">
+    <div class="h-logo">ST</div>
+    <div class="h-titles">
+      <div class="h-t1">ST TRANS</div>
+      <div class="h-t2">Commercial Department – Daily Loading Dashboard · May 2026</div>
+    </div>
+  </div>
+  <div class="h-right">
+    <div class="admin-b" id="adminB">⭐ Admin</div>
+    <div class="live-b"><div class="live-dot"></div>LIVE</div>
+    <span id="updT">—</span>
+    <button class="ref-btn" id="refBtn" onclick="document.getElementById('xlsxInput').click()" style="display:none">
+      <span id="refLbl">⟳ Refresh Data</span>
+      <div class="spinner" id="spin"></div>
+    </button>
+    <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv">
+  </div>
+</header>
+
+<!-- ── TABS ── -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(0)">📊 Overview</div>
+  <div class="tab" onclick="switchTab(1)">📈 Performance</div>
+  <div class="tab" onclick="switchTab(2)">🚛 Drivers & Units</div>
+  <div class="tab" onclick="switchTab(3)">🗺 Routes</div>
+  <div class="tab" onclick="switchTab(4)">📋 Data Table</div>
+</div>
+
+<main>
+
+<!-- ══ TAB 0: OVERVIEW ══ -->
+<div class="tab-page active" id="tab0">
+
+  <div class="alert">
+    <span style="font-size:1rem">📊</span>
+    <span>
+      <b>May 2026 Performance:</b>
+      Volume <b id="aVolPct">—</b> of target &nbsp;|&nbsp;
+      KM <b id="aKmPct">—</b> of target &nbsp;|&nbsp;
+      Trips <b id="aTrpPct">—</b> of target &nbsp;|&nbsp;
+      Period: <b id="aPeriod">1–23 May 2026</b>
+    </span>
+  </div>
+
+  <div class="g5" id="kpiRow"></div>
+
+  <div class="g2">
+    <div class="panel" style="grid-column:span 2">
+      <div class="pt">Daily Loading Trend — May 2026</div>
+      <canvas id="cDaily" height="160"></canvas>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="panel">
+      <div class="pt">Route Breakdown</div>
+      <canvas id="cRoute" height="200"></canvas>
+    </div>
+    <div class="panel">
+      <div class="pt">Cargo Type Split</div>
+      <canvas id="cCargo" height="200"></canvas>
+      <div id="cargoLeg" style="display:flex;flex-direction:column;gap:7px;margin-top:12px;font-size:.76rem"></div>
+    </div>
+    <div class="panel">
+      <div class="pt">Annual Volume — 2026</div>
+      <canvas id="cAnnual" height="200"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ TAB 1: PERFORMANCE ══ -->
+<div class="tab-page" id="tab1">
+
+  <div class="g4" id="achRow"></div>
+
+  <div class="g2">
+    <div class="panel">
+      <div class="pt">Daily Volume vs Target</div>
+      <canvas id="cVolTgt" height="220"></canvas>
+    </div>
+    <div class="panel">
+      <div class="pt">Daily KM Trend</div>
+      <canvas id="cKM" height="220"></canvas>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="panel">
+      <div class="pt">Daily Trips vs Target (15.6/day)</div>
+      <canvas id="cTrpTgt" height="200"></canvas>
+    </div>
+    <div class="panel">
+      <div class="pt">Monthly Cumulative Volume</div>
+      <canvas id="cCumul" height="200"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ TAB 2: DRIVERS & UNITS ══ -->
+<div class="tab-page" id="tab2">
+  <div class="g2">
+    <div class="panel">
+      <div class="pt">Top 10 Drivers — by Trips</div>
+      <div class="du-list" id="driverList"></div>
+    </div>
+    <div class="panel">
+      <div class="pt">Top 10 Units — by Trips</div>
+      <div class="du-list" id="unitList"></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="panel">
+      <div class="pt">Driver Performance — Volume (MT)</div>
+      <canvas id="cDrvVol" height="260"></canvas>
+    </div>
+    <div class="panel">
+      <div class="pt">Unit Performance — Volume (MT)</div>
+      <canvas id="cUnitVol" height="260"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB 3: ROUTES ══ -->
+<div class="tab-page" id="tab3">
+  <div class="panel">
+    <div class="pt">Route Performance — Trips & Volume</div>
+    <div class="route-perf" id="routePerf"></div>
+  </div>
+  <div class="g2">
+    <div class="panel">
+      <div class="pt">Volume per Route (MT)</div>
+      <canvas id="cRtVol" height="220"></canvas>
+    </div>
+    <div class="panel">
+      <div class="pt">KM per Route</div>
+      <canvas id="cRtKm" height="220"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB 4: DATA TABLE ══ -->
+<div class="tab-page" id="tab4">
+  <div class="panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div class="pt" style="margin-bottom:0">All Records — May 2026</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="fOrig" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:7px;font-size:.78rem;outline:none">
+          <option value="">All Origins</option>
+          <option>PZU</option><option>Abo Hamad</option>
+        </select>
+        <select id="fDest" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:7px;font-size:.78rem;outline:none">
+          <option value="">All Destinations</option>
+          <option>Khartoum</option><option>Atbara</option><option>Barbar</option>
+        </select>
+        <select id="fShip" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:7px;font-size:.78rem;outline:none">
+          <option value="">All Cargo</option>
+          <option>WHEATRW01</option><option>Corn</option>
+        </select>
+        <input id="fSearch" type="text" placeholder="Search…" style="background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:7px;font-size:.78rem;outline:none;min-width:160px" oninput="filterTable()">
+      </div>
+    </div>
+    <div id="tblCount" style="font-size:.72rem;color:var(--muted);margin-bottom:8px"></div>
+    <div class="tbl-wrap">
+      <table><thead><tr>
+        <th>#</th><th>Unit No</th><th>Driver</th><th>Departure</th>
+        <th>Origin</th><th>Destination</th><th>Distance KM</th>
+        <th>Manifest</th><th>Cargo</th><th>Weight MT</th>
+      </tr></thead><tbody id="tBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+const TARGETS = {trips:483, volume:42504, km:383465, dailyVol:1371, dailyTrips:15.6};
+const DAILY = [{"d":"5/1","t":11,"w":977.6,"k":8145},{"d":"5/2","t":15,"w":1309.0,"k":11485},{"d":"5/3","t":21,"w":1788.2,"k":15850},{"d":"5/4","t":17,"w":1524.9,"k":12510},{"d":"5/5","t":18,"w":1622.5,"k":12860},{"d":"5/6","t":20,"w":1793.3,"k":13750},{"d":"5/7","t":18,"w":1614.7,"k":12450},{"d":"5/8","t":9,"w":818.5,"k":7515},{"d":"5/9","t":17,"w":1465.7,"k":13550},{"d":"5/10","t":11,"w":974.6,"k":9185},{"d":"5/11","t":24,"w":2161.6,"k":20040},{"d":"5/12","t":17,"w":1512.7,"k":13415},{"d":"5/13","t":11,"w":987.5,"k":8925},{"d":"5/14","t":19,"w":1714.3,"k":15865},{"d":"5/15","t":17,"w":1507.4,"k":12260},{"d":"5/16","t":21,"w":1889.4,"k":17535},{"d":"5/17","t":19,"w":1712.0,"k":15865},{"d":"5/18","t":20,"w":1701.0,"k":16700},{"d":"5/19","t":20,"w":1799.3,"k":14690},{"d":"5/20","t":17,"w":1530.3,"k":11850},{"d":"5/21","t":8,"w":722.3,"k":6010},{"d":"5/22","t":24,"w":2163.6,"k":16690},{"d":"5/23","t":21,"w":1889.2,"k":15525}];
+const ROUTES = {"PZU → Khartoum":{"t":319,"w":28470,"k":266365},"PZU → Atbara":{"t":37,"w":3332,"k":18500},"Abo Hamad → Khartoum":{"t":27,"w":2362,"k":15525},"Abo Hamad → Barbar":{"t":12,"w":1015,"k":2280}};
+const SHIPS = {"WHEATRW01":32207,"Corn":2972};
+const DRIVERS = [{"n":"Khalid Bashir Mursal Hassan","t":6,"w":538.8,"k":4675,"u":"8288"},{"n":"Mohamed Alnadeef Matar Obaid","t":5,"w":446.1,"k":3915,"u":"14692"},{"n":"Yahia Hassan Abuanga Mohamed","t":5,"w":446.3,"k":3580,"u":"14685"},{"n":"Mohammed Abdelgadir Abakr Omer","t":5,"w":450.9,"k":3270,"u":"12691"},{"n":"Abdalla Alamin Adam Ahmed","t":5,"w":444.4,"k":3915,"u":"12480"},{"n":"Mohamed Hassan Ahmed Gaknoon","t":5,"w":447.6,"k":3915,"u":"14682"},{"n":"Saif Elyazal Rabieh Ibrahim","t":5,"w":449.7,"k":3840,"u":"14687"},{"n":"Abdalla Ahmed Ibrahim Daief","t":5,"w":450.2,"k":3840,"u":"12734"},{"n":"Eldawi Mohamed Eldawi Mohamed","t":5,"w":450.1,"k":3840,"u":"8336"},{"n":"Sharif Idris Omer Abdalla","t":5,"w":452.0,"k":3505,"u":"14686"}];
+const UNITS = [{"u":"8288","t":6,"w":538.8,"k":4675,"d":"Khalid Bashir Mursal Hassan"},{"u":"9043","t":5,"w":449.0,"k":3530,"d":"Mortada Abakar Ibrahim"},{"u":"14692","t":5,"w":446.1,"k":3915,"d":"Mohamed Alnadeef Matar Obaid"},{"u":"14689","t":5,"w":446.8,"k":3580,"d":"Eisa Mohamed Adam Sheiga"},{"u":"12997","t":5,"w":440.3,"k":2935,"d":"Mohamed Abdelrahman Mohayed Banaga"},{"u":"14685","t":5,"w":446.3,"k":3580,"d":"Yahia Hassan Abuanga Mohamed"},{"u":"12691","t":5,"w":450.9,"k":3270,"d":"Mohammed Abdelgadir Abakr Omer"},{"u":"9042","t":5,"w":451.3,"k":2885,"d":"Tarig Mohamed Bahsar Idrees"},{"u":"12480","t":5,"w":444.4,"k":3915,"d":"Abdalla Alamin Adam Ahmed"},{"u":"14682","t":5,"w":447.6,"k":3915,"d":"Mohamed Hassan Ahmed Gaknoon"}];
+const ANNUAL_T=[49632,44176,44176,47872,42504,47872,49632,49632,47872,49632,47872,49632];
+const ANNUAL_A=[49632,44176,44176,47872,35180,0,0,0,0,0,0,0];
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const ALL_ROWS = [{"u":"9310","d":"Isam Min Allah Ahmed Min Allah","dep":"2026-05-01T01:41","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09860","s":"WHEATRW01","w":90.2},{"u":"9043","d":"Mortada Abakar Ibrahim","dep":"2026-05-01T21:14","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09690","s":"WHEATRW01","w":89.78},{"u":"14692","d":"Mohamed Alnadeef Matar Obaid","dep":"2026-05-01T09:08","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":86.1},{"u":"14689","d":"Mohamed Saad Abdelkareem Jabir","dep":"2026-05-01T11:41","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":86.7},{"u":"12689","d":"Khalefa Abakr Adam Hamid","dep":"2026-05-01T15:24","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.08},{"u":"12988","d":"Ayoub Musa Ahmed Musa","dep":"2026-05-01T17:53","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.7},{"u":"12207","d":"","dep":"2026-05-02T09:33","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":86.56},{"u":"9075","d":"","dep":"2026-05-02T12:44","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":88.22},{"u":"8285","d":"","dep":"2026-05-02T15:14","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.7},{"u":"12993","d":"","dep":"2026-05-02T17:04","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.32},{"u":"12997","d":"Mohamed Abdelrahman Mohayed Banaga","dep":"2026-05-03T10:06","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":86.18},{"u":"14685","d":"Yahia Hassan Abuanga Mohamed","dep":"2026-05-03T12:45","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":85.78},{"u":"303","d":"Sanad Saif Mohamed Abdalla","dep":"2026-05-03T15:33","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":86.65},{"u":"12691","d":"Mohammed Abdelgadir Abakr Omer","dep":"2026-05-03T17:07","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"WHEATRW01","w":92.38},{"u":"12690","d":"Mohamed Abdelghani Abass Idress","dep":"2026-05-03T17:22","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.44},{"u":"12733","d":"Abdelrahman Ali Abdelrahman Yousif","dep":"2026-05-04T22:31","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09902","s":"WHEATRW01","w":90.22},{"u":"12729","d":"","dep":"2026-05-04T09:55","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":88.38},{"u":"3117","d":"","dep":"2026-05-04T12:11","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.82},{"u":"14684","d":"","dep":"2026-05-04T14:12","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.4},{"u":"12206","d":"","dep":"2026-05-04T15:01","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"WHEATRW01","w":93.18},{"u":"9303","d":"","dep":"2026-05-04T15:46","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":88.38},{"u":"14679","d":"Eisa Mohamed Adam Sheiga","dep":"2026-05-05T22:59","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09902","s":"WHEATRW01","w":90.12},{"u":"9042","d":"","dep":"2026-05-05T11:59","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"WHEATRW01","w":92.18},{"u":"14688","d":"","dep":"2026-05-05T17:18","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":89.02},{"u":"14694","d":"Ibrahim Adam Idress Ibrahim","dep":"2026-05-06T09:06","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":89.02},{"u":"1645","d":"Huzaifa Mohamed Omer Ahmed","dep":"2026-05-06T10:56","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"WHEATRW01","w":91.36},{"u":"12206","d":"Saleem Mohamed Saleem Ahmed","dep":"2026-05-06T11:48","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":88.38},{"u":"12480","d":"Abdalla Alamin Adam Ahmed","dep":"2026-05-06T14:28","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.92},{"u":"14682","d":"Mohamed Hassan Ahmed Gaknoon","dep":"2026-05-06T14:42","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.36},{"u":"12728","d":"Noureldean Ahmed Alhamem Mohamed","dep":"2026-05-06T18:11","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.82},{"u":"9043","d":"","dep":"2026-05-07T10:17","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"Corn","w":88.84},{"u":"9042","d":"","dep":"2026-05-07T13:21","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"Corn","w":88.42},{"u":"9315","d":"","dep":"2026-05-07T15:29","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"Corn","w":98.9},{"u":"12997","d":"","dep":"2026-05-07T17:36","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"Corn","w":87.28},{"u":"300","d":"Hassan Adam Abdalrasool","dep":"2026-05-01T01:20","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09856","s":"WHEATRW01","w":90.14},{"u":"8294","d":"Moneer Mohamed Ebaid Hassan","dep":"2026-05-01T10:04","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09694","s":"WHEATRW01","w":90.22},{"u":"14677","d":"Awad Suliman Abdelrahman Alsheikh","dep":"2026-05-01T16:11","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09861","s":"WHEATRW01","w":89.72},{"u":"14694","d":"Ibrahim Adam Idress Ibrahim","dep":"2026-05-01T22:03","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09845","s":"WHEATRW01","w":90.24},{"u":"301","d":"Talal Fikri Mohamed Aboubakr","dep":"2026-05-01T22:01","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09851","s":"WHEATRW01","w":89.72},{"u":"3113","d":"Tarig Mahgoub Ali","dep":"2026-05-02T10:42","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09862","s":"WHEATRW01","w":56.42},{"u":"12480","d":"Abdalla Alamin Adam Ahmed","dep":"2026-05-02T13:19","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09853","s":"WHEATRW01","w":90.08},{"u":"9305","d":"Atta Almanan Mahmoud Hamid Baghdad","dep":"2026-05-02T14:29","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09859","s":"WHEATRW01","w":90.78},{"u":"1646","d":"Amar Adil Mohamed Ali Ibrahim","dep":"2026-05-02T14:41","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09852","s":"WHEATRW01","w":90.26},{"u":"12211","d":"Khalid Hamad Babiker Hamad","dep":"2026-05-02T16:59","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09867","s":"WHEATRW01","w":90.2},{"u":"11580","d":"Haitham Mohamed Yousif Osman","dep":"2026-05-02T17:03","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09866","s":"WHEATRW01","w":90.26},{"u":"14682","d":"Mohamed Hassan Ahmed Gaknoon","dep":"2026-05-02T17:53","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09871","s":"WHEATRW01","w":90.24},{"u":"14687","d":"Saif Elyazal Rabieh Ibrahim","dep":"2026-05-02T21:12","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09870","s":"WHEATRW01","w":90.14},{"u":"6794","d":"Mohamed Abdein Abdallah Fadlallah","dep":"2026-05-02T21:23","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09857","s":"WHEATRW01","w":90.6},{"u":"11578","d":"Ayman Alamin Alemam Abdalla","dep":"2026-05-02T23:09","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09872","s":"WHEATRW01","w":90.02},{"u":"8286","d":"Sufyan Ahamed Mohamed","dep":"2026-05-02T22:46","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09858","s":"WHEATRW01","w":90.16},{"u":"12734","d":"Abdalla Ahmed Ibrahim Daief","dep":"2026-05-03T00:00","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09869","s":"WHEATRW01","w":89.84},{"u":"8336","d":"Eldawi Mohamed Eldawi Mohamed","dep":"2026-05-03T00:34","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09673","s":"WHEATRW01","w":89.98},{"u":"9315","d":"Bakheit Elfadil Bakheit Mukhtar","dep":"2026-05-03T11:53","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09873","s":"WHEATRW01","w":90.14},{"u":"8283","d":"Abbas Babker Alhaj","dep":"2026-05-03T12:25","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09854","s":"WHEATRW01","w":89.94},{"u":"1364","d":"Ashraf Yagoup Mohamed Abdallah","dep":"2026-05-03T12:39","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09874","s":"WHEATRW01","w":90.1},{"u":"8288","d":"Khalid Bashir Mursal Hassan","dep":"2026-05-03T13:34","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09724","s":"WHEATRW01","w":89.76},{"u":"14686","d":"Sharif Idris Omer Abdalla","dep":"2026-05-03T13:11","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09880","s":"WHEATRW01","w":90.08},{"u":"9312","d":"Ibrahim Hassan Nasr Saleh","dep":"2026-05-03T13:36","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09876","s":"WHEATRW01","w":90.12},{"u":"11579","d":"Issa Ahmed Ibrahim Adam","dep":"2026-05-03T14:52","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09868","s":"WHEATRW01","w":89.4},{"u":"12203","d":"Ashraf Mohamed Issa Osman","dep":"2026-05-03T15:44","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09863","s":"WHEATRW01","w":90.16},{"u":"14690","d":"Abdulgadir Abaker Ali Omer","dep":"2026-05-03T16:06","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09864","s":"WHEATRW01","w":90.08},{"u":"9041","d":"Aladdin Adam Yahya Mohammed","dep":"2026-05-03T17:09","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09877","s":"WHEATRW01","w":90.18},{"u":"12880","d":"Awad Eysa Idres Idres","dep":"2026-05-03T20:38","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09883","s":"WHEATRW01","w":90.2},{"u":"9073","d":"Ahmed Obaid Mohmed Ali","dep":"2026-05-03T21:41","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09895","s":"WHEATRW01","w":89.82},{"u":"14695","d":"Isam Eldean Mahmoued Makki","dep":"2026-05-03T23:32","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09899","s":"WHEATRW01","w":89.96},{"u":"12877","d":"Hassan Aldaw Ibrahim Abdelmohsin","dep":"2026-05-04T12:32","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09890","s":"WHEATRW01","w":90.12},{"u":"3122","d":"Adam Younis Abdallah Ibrahim","dep":"2026-05-04T13:22","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09898","s":"WHEATRW01","w":89.16},{"u":"9308","d":"Mohamed Adam Osman Braima","dep":"2026-05-04T16:19","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09742","s":"WHEATRW01","w":90.08},{"u":"12735","d":"Fathi Bushra Bakheat Balal","dep":"2026-05-04T16:38","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09878","s":"WHEATRW01","w":90.2},{"u":"13076","d":"Ayman Abdelkareem Hassan Ibrahim","dep":"2026-05-04T17:35","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09884","s":"WHEATRW01","w":89.26},{"u":"12992","d":"Mohyeldin Ali Mahadi Khatir","dep":"2026-05-04T18:17","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09897","s":"WHEATRW01","w":90.0},{"u":"12732","d":"Shawarga Mabrhto Woldgrash","dep":"2026-05-04T22:15","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09889","s":"WHEATRW01","w":90.16},{"u":"12995","d":"Seliman Hassan Yagoub Mohamed","dep":"2026-05-04T22:57","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09756","s":"WHEATRW01","w":90.16},{"u":"9306","d":"Sayed Ali Hashim Ibrahim","dep":"2026-05-04T23:22","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09886","s":"WHEATRW01","w":90.2},{"u":"12989","d":"Naser Mohamed Khalil Osman","dep":"2026-05-04T23:45","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09892","s":"WHEATRW01","w":90.2},{"u":"12994","d":"Elsadig Mohamed Yousif Ibrahim","dep":"2026-05-05T12:17","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09891","s":"WHEATRW01","w":90.24},{"u":"6795","d":"Abdulmoneim Fadlalmawla Mohammad Hamed","dep":"2026-05-05T01:17","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09888","s":"WHEATRW01","w":90.0},{"u":"12730","d":"Osman Hussein Mohamed Abakar","dep":"2026-05-04T22:51","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09879","s":"WHEATRW01","w":89.96},{"u":"3115","d":"Marzog Ali Hago Elatmani","dep":"2026-05-05T03:54","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09885","s":"WHEATRW01","w":89.78},{"u":"12205","d":"Abu Obieda Saeed Hamdeen Gabar Eldar","dep":"2026-05-05T14:41","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09909","s":"WHEATRW01","w":90.9},{"u":"14676","d":"Adiso Nigousi Biati Tigari","dep":"2026-05-05T17:42","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09896","s":"WHEATRW01","w":89.82},{"u":"9074","d":"Mobarak Omer Mohamed Omer","dep":"2026-05-05T18:25","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09905","s":"WHEATRW01","w":90.82},{"u":"9304","d":"Mountsir Gariballa Elsaid Adam","dep":"2026-05-05T16:50","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09894","s":"WHEATRW01","w":90.12},{"u":"9313","d":"Samoal Mohamed Saleem Ahmed","dep":"2026-05-05T17:35","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09887","s":"WHEATRW01","w":90.18},{"u":"9044","d":"Haytham Ahmed Mohamed Arbab","dep":"2026-05-05T21:49","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09893","s":"WHEATRW01","w":90.26},{"u":"9309","d":"Talal Fikri Mohamed Aboubakr","dep":"2026-05-05T22:02","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09903","s":"WHEATRW01","w":90.14},{"u":"300","d":"Hassan Adam Abdalrasool","dep":"2026-05-06T01:30","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09907","s":"WHEATRW01","w":89.96},{"u":"9316","d":"Alsadig Suliman Abdalla Mohamed","dep":"2026-05-06T01:53","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09901","s":"WHEATRW01","w":90.14},{"u":"8297","d":"Salman Abdulmoneim Omer Alawad","dep":"2026-05-05T22:34","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09900","s":"WHEATRW01","w":90.2},{"u":"3120","d":"Bakri Hassan Akasha Khider","dep":"2026-05-05T16:23","o":"PZU","dt":"Atbara","km":500.0,"mn":"09918","s":"WHEATRW01","w":90.3},{"u":"12210","d":"Mohamed Ibrahim Abdalla Alhaj","dep":"2026-05-05T15:39","o":"PZU","dt":"Atbara","km":500.0,"mn":"09916","s":"WHEATRW01","w":89.9},{"u":"3119","d":"Abdelazim Elnour Ismail Hassan","dep":"2026-05-05T12:40","o":"PZU","dt":"Atbara","km":500.0,"mn":"09917","s":"WHEATRW01","w":89.98},{"u":"8282","d":"Motaz Abdo Ismaeil Elhag","dep":"2026-05-06T13:06","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09923","s":"WHEATRW01","w":90.12},{"u":"14692","d":"Mohamed Alnadeef Matar Obaid","dep":"2026-05-06T15:07","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09904","s":"WHEATRW01","w":89.6},{"u":"14693","d":"Mahajoub Abnaoof Mohamed Elgizoli","dep":"2026-05-06T16:29","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09906","s":"WHEATRW01","w":88.12},{"u":"3121","d":"Badr Eldin Ibrahim Hassan Adam","dep":"2026-05-06T16:52","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09908","s":"WHEATRW01","w":90.18},{"u":"9310","d":"Mohamed Ahmed Mahmoud Burima","dep":"2026-05-06T17:06","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09910","s":"WHEATRW01","w":90.14},{"u":"14680","d":"Abbas Ali Saddan Argeel","dep":"2026-05-06T18:53","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09914","s":"WHEATRW01","w":89.68},{"u":"9072","d":"Alfarazdaq Abouad Gaselsaid Gobartallah","dep":"2026-05-06T21:38","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09912","s":"WHEATRW01","w":90.9},{"u":"3114","d":"Abu Ali Zaki Abu Ali Mohamed Alhassan","dep":"2026-05-06T21:48","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09911","s":"WHEATRW01","w":91.08},{"u":"1366","d":"Adil Adam Musa Noureldin","dep":"2026-05-06T22:07","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09913","s":"WHEATRW01","w":90.94},{"u":"6793","d":"Malik Ahamed Yoasif Rahma","dep":"2026-05-06T11:51","o":"PZU","dt":"Atbara","km":500.0,"mn":"09926","s":"WHEATRW01","w":90.18},{"u":"12726","d":"Samer Zainelabiden Hassan Mohamed","dep":"2026-05-06T12:16","o":"PZU","dt":"Atbara","km":500.0,"mn":"09928","s":"WHEATRW01","w":90.22},{"u":"3112","d":"Elsheikhidris  Basheer Alfaki Basheer","dep":"2026-05-06T12:35","o":"PZU","dt":"Atbara","km":500.0,"mn":"09927","s":"WHEATRW01","w":90.22},{"u":"12207","d":"Mojahid Mahil Eldaw Attash","dep":"2026-05-07T12:50","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09924","s":"WHEATRW01","w":87.38},{"u":"12209","d":"Ali Ahmed Ismael Mohamed","dep":"2026-05-07T13:15","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09919","s":"WHEATRW01","w":89.02},{"u":"9302","d":"Yasir Abas Mohamed Ali Omer","dep":"2026-05-07T13:20","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09925","s":"WHEATRW01","w":88.76},{"u":"14681","d":"Elsadig Mohamed Arbab Suliman","dep":"2026-05-07T12:59","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09915","s":"WHEATRW01","w":90.1},{"u":"8294","d":"Moneer Mohamed Ebaid Hassan","dep":"2026-05-07T14:50","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09935","s":"WHEATRW01","w":89.66},{"u":"14677","d":"Awad Suliman Abdelrahman Alsheikh","dep":"2026-05-07T15:11","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09922","s":"WHEATRW01","w":89.86},{"u":"8336","d":"Eldawi Mohamed Eldawi Mohamed","dep":"2026-05-07T15:23","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09936","s":"WHEATRW01","w":89.74},{"u":"14685","d":"Yahia Hassan Abuanga Mohamed","dep":"2026-05-07T15:45","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09937","s":"WHEATRW01","w":89.62},{"u":"9075","d":"Abuelbashr Abdelwahab Eid Mohamed","dep":"2026-05-07T17:33","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09931","s":"WHEATRW01","w":89.08},{"u":"14689","d":"Mohamed Saad Abdelkareem Jabir","dep":"2026-05-07T18:09","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09921","s":"WHEATRW01","w":90.0},{"u":"9073","d":"Ahmed Obaid Mohmed Ali","dep":"2026-05-07T18:12","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09933","s":"WHEATRW01","w":89.9},{"u":"11579","d":"Issa Ahmed Ibrahim Adam","dep":"2026-05-07T18:37","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09942","s":"WHEATRW01","w":89.46},{"u":"9305","d":"Atta Almanan Mahmoud Hamid Baghdad","dep":"2026-05-07T18:40","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09938","s":"WHEATRW01","w":89.2},{"u":"14687","d":"Saif Elyazal Rabieh Ibrahim","dep":"2026-05-07T22:27","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09939","s":"WHEATRW01","w":89.48},{"u":"9071","d":"Ayman Osman Salih Osman","dep":"2026-05-08T02:45","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09952","s":"WHEATRW01","w":91.62},{"u":"9312","d":"Ibrahim Hassan Nasr Saleh","dep":"2026-05-08T02:47","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09951","s":"WHEATRW01","w":90.94},{"u":"14690","d":"Abdulgadir Abaker Ali Omer","dep":"2026-05-08T10:43","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09934","s":"WHEATRW01","w":90.62},{"u":"14695","d":"Isam Eldean Mahmoued Makki","dep":"2026-05-08T10:15","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09930","s":"WHEATRW01","w":91.24},{"u":"12689","d":"Khalefa Abakr Adam Hamid","dep":"2026-05-08T14:25","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09932","s":"WHEATRW01","w":91.62},{"u":"14686","d":"Sharif Idris Omer Abdalla","dep":"2026-05-08T14:37","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09941","s":"WHEATRW01","w":91.72},{"u":"12203","d":"Ashraf Mohamed Issa Osman","dep":"2026-05-08T14:55","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09940","s":"WHEATRW01","w":90.46},{"u":"12211","d":"Khalid Hamad Babiker Hamad","dep":"2026-05-08T23:26","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09948","s":"WHEATRW01","w":89.96},{"u":"8288","d":"Khalid Bashir Mursal Hassan","dep":"2026-05-08T23:03","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09955","s":"WHEATRW01","w":90.28},{"u":"12734","d":"Abdalla Ahmed Ibrahim Daief","dep":"2026-05-09T00:24","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09953","s":"WHEATRW01","w":90.04},{"u":"12880","d":"Awad Eysa Idres Idres","dep":"2026-05-09T00:06","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09944","s":"WHEATRW01","w":89.16},{"u":"13076","d":"Ayman Abdelkareem Hassan Ibrahim","dep":"2026-05-09T00:54","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09950","s":"WHEATRW01","w":89.94},{"u":"3113","d":"Tarig Mahgoub Ali","dep":"2026-05-09T01:13","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09945","s":"WHEATRW01","w":89.0},{"u":"12877","d":"Hassan Aldaw Ibrahim Abdelmohsin","dep":"2026-05-09T01:31","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09946","s":"WHEATRW01","w":90.22},{"u":"1646","d":"Amar Adil Mohamed Ali Ibrahim","dep":"2026-05-09T01:49","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09943","s":"WHEATRW01","w":88.94},{"u":"1364","d":"Ashraf Yagoup Mohamed Abdallah","dep":"2026-05-09T11:51","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09929","s":"WHEATRW01","w":89.36},{"u":"11578","d":"Ayman Alamin Alemam Abdalla","dep":"2026-05-09T12:28","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09947","s":"WHEATRW01","w":89.38},{"u":"1357","d":"Ismael Fathi Ismael","dep":"2026-05-09T14:50","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09920","s":"WHEATRW01","w":89.84},{"u":"12989","d":"Naser Mohamed Khalil Osman","dep":"2026-05-09T16:00","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09968","s":"WHEATRW01","w":89.18},{"u":"3122","d":"Adam Younis Abdallah Ibrahim","dep":"2026-05-09T17:40","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09956","s":"WHEATRW01","w":89.58},{"u":"6793","d":"Malik Ahamed Yoasif Rahma","dep":"2026-05-09T21:58","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09960","s":"WHEATRW01","w":89.24},{"u":"1354","d":"Amer Ahamad Noman Ibrahim","dep":"2026-05-09T22:12","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09881","s":"WHEATRW01","w":88.74},{"u":"12732","d":"Shawarga Mabrhto Woldgrash","dep":"2026-05-09T22:30","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09961","s":"WHEATRW01","w":88.78},{"u":"12726","d":"Samer Zainelabiden Hassan Mohamed","dep":"2026-05-09T23:22","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09969","s":"WHEATRW01","w":89.22},{"u":"3112","d":"Elsheikhidris  Basheer Alfaki Basheer","dep":"2026-05-09T23:36","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09959","s":"WHEATRW01","w":89.18},{"u":"9308","d":"Mohamed Adam Osman Braima","dep":"2026-05-10T11:00","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09965","s":"WHEATRW01","w":88.46},{"u":"12205","d":"Abu Obieda Saeed Hamdeen Gabar Eldar","dep":"2026-05-10T13:21","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09967","s":"WHEATRW01","w":87.38},{"u":"9314","d":"Idris Mohamed Mahmoud Mohamed","dep":"2026-05-10T13:05","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09972","s":"WHEATRW01","w":88.04},{"u":"11580","d":"Haitham Mohamed Yousif Osman","dep":"2026-05-10T13:58","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09949","s":"WHEATRW01","w":88.1},{"u":"12988","d":"Ayoub Musa Ahmed Musa","dep":"2026-05-10T15:03","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09963","s":"WHEATRW01","w":88.18},{"u":"12997","d":"Mohamed Abdelrahman Mohayed Banaga","dep":"2026-05-10T16:38","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09983","s":"WHEATRW01","w":87.02},{"u":"12480","d":"Abdalla Alamin Adam Ahmed","dep":"2026-05-10T16:54","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09981","s":"WHEATRW01","w":86.18},{"u":"9042","d":"Tarig Mohamed Bahsar Idrees","dep":"2026-05-10T18:17","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09964","s":"WHEATRW01","w":90.58},{"u":"9044","d":"Haytham Ahmed Mohamed Arbab","dep":"2026-05-10T21:01","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09979","s":"WHEATRW01","w":90.24},{"u":"9303","d":"Awooda Saidahmed Awooda Alsanousi","dep":"2026-05-10T21:56","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09978","s":"WHEATRW01","w":90.2},{"u":"9316","d":"Alsadig Suliman Abdalla Mohamed","dep":"2026-05-10T23:01","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09980","s":"WHEATRW01","w":90.22},{"u":"9043","d":"","dep":"2026-05-11T00:43","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09996","s":"WHEATRW01","w":90.22},{"u":"301","d":"Saifeldin Awad Elhassan Hussein","dep":"2026-05-11T01:37","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09999","s":"WHEATRW01","w":90.2},{"u":"9309","d":"Talal Fikri Mohamed Aboubakr","dep":"2026-05-11T02:24","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09975","s":"WHEATRW01","w":90.18},{"u":"12733","d":"Abdelrahman Ali Abdelrahman Yousif","dep":"2026-05-11T03:20","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09970","s":"WHEATRW01","w":90.22},{"u":"12735","d":"Fathi Bushra Bakheat Balal","dep":"2026-05-11T12:05","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09966","s":"WHEATRW01","w":90.02},{"u":"12992","d":"Mohyeldin Ali Mahadi Khatir","dep":"2026-05-11T12:50","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09957","s":"WHEATRW01","w":90.18},{"u":"14676","d":"Adiso Nigousi Biati Tigari","dep":"2026-05-11T13:11","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09977","s":"WHEATRW01","w":89.74},{"u":"9074","d":"Mobarak Omer Mohamed Omer","dep":"2026-05-11T14:23","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09997","s":"WHEATRW01","w":90.2},{"u":"9306","d":"Sayed Ali Hashim Ibrahim","dep":"2026-05-11T14:37","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09993","s":"WHEATRW01","w":90.24},{"u":"14693","d":"Mahajoub Abnaoof Mohamed Elgizoli","dep":"2026-05-11T15:53","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09995","s":"WHEATRW01","w":89.96},{"u":"3115","d":"Marzog Ali Hago Elatmani","dep":"2026-05-11T16:48","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09973","s":"WHEATRW01","w":90.0},{"u":"3121","d":"Badr Eldin Ibrahim Hassan Adam","dep":"2026-05-11T17:10","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09992","s":"WHEATRW01","w":90.0},{"u":"9315","d":"Bakheit Elfadil Bakheit Mukhtar","dep":"2026-05-11T18:33","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09971","s":"WHEATRW01","w":90.0},{"u":"9304","d":"Mountsir Gariballa Elsaid Adam","dep":"2026-05-11T16:34","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09976","s":"WHEATRW01","w":89.46},{"u":"12995","d":"Seliman Hassan Yagoub Mohamed","dep":"2026-05-11T16:59","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09954","s":"WHEATRW01","w":90.16},{"u":"9313","d":"Samoal Mohamed Saleem Ahmed","dep":"2026-05-11T17:20","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09994","s":"WHEATRW01","w":90.14},{"u":"12994","d":"Elsadig Mohamed Yousif Ibrahim","dep":"2026-05-11T18:24","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09962","s":"WHEATRW01","w":90.02},{"u":"3117","d":"Elzibair Abdallah Elzibair MohamedAhmed","dep":"2026-05-11T21:44","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09991","s":"WHEATRW01","w":90.18},{"u":"8286","d":"Sufyan Ahamed Mohamed","dep":"2026-05-11T22:29","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09958","s":"WHEATRW01","w":90.18},{"u":"12730","d":"Osman Hussein Mohamed Abakar","dep":"2026-05-11T22:50","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09982","s":"WHEATRW01","w":89.96},{"u":"14692","d":"Mohamed Alnadeef Matar Obaid","dep":"2026-05-11T22:53","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09984","s":"WHEATRW01","w":90.2},{"u":"14679","d":"Eisa Mohamed Adam Sheiga","dep":"2026-05-11T23:45","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09987","s":"WHEATRW01","w":90.2},{"u":"6795","d":"Abdulmoneim Fadlalmawla Mohammad Hamed","dep":"2026-05-11T23:28","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09985","s":"WHEATRW01","w":89.98},{"u":"14688","d":"Oshaik Mohamed Ahmed Abasher","dep":"2026-05-11T23:40","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09989","s":"WHEATRW01","w":89.94},{"u":"6796","d":"Heshameldin Mohamed Mousa Mohamed","dep":"2026-05-12T00:03","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09414","s":"WHEATRW01","w":80.84},{"u":"14684","d":"Osama Mohamed Elamin Yassen","dep":"2026-05-12T09:07","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09988","s":"WHEATRW01","w":90.02},{"u":"14682","d":"Mohamed Hassan Ahmed Gaknoon","dep":"2026-05-12T09:27","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09990","s":"WHEATRW01","w":89.9},{"u":"8288","d":"Khalid Bashir Mursal Hassan","dep":"2026-05-12T15:27","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010004","s":"WHEATRW01","w":90.08},{"u":"12691","d":"Mohammed Abdelgadir Abakr Omer","dep":"2026-05-12T15:28","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010007","s":"WHEATRW01","w":90.08},{"u":"14685","d":"Yahia Hassan Abuanga Mohamed","dep":"2026-05-12T15:35","o":"PZU","dt":"Khartoum","km":835.0,"mn":"10000","s":"WHEATRW01","w":90.18},{"u":"14690","d":"Abdulgadir Abaker Ali Omer","dep":"2026-05-12T16:22","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010003","s":"WHEATRW01","w":89.62},{"u":"12728","d":"Noureldean Ahmed Alhamem Mohamed","dep":"2026-05-12T17:33","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010005","s":"WHEATRW01","w":90.26},{"u":"8336","d":"Eldawi Mohamed Eldawi Mohamed","dep":"2026-05-12T21:00","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010002","s":"WHEATRW01","w":90.16},{"u":"9302","d":"Yasir Abas Mohamed Ali Omer","dep":"2026-05-12T22:34","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010009","s":"WHEATRW01","w":90.0},{"u":"9073","d":"Ahmed Obaid Mohmed Ali","dep":"2026-05-12T22:37","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010008","s":"WHEATRW01","w":90.06},{"u":"14681","d":"Elsadig Mohamed Arbab Suliman","dep":"2026-05-12T23:11","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010006","s":"WHEATRW01","w":90.04},{"u":"12206","d":"Saleem Mohamed Saleem Ahmed","dep":"2026-05-12T22:48","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010001","s":"WHEATRW01","w":90.14},{"u":"12203","d":"Ashraf Mohamed Issa Osman","dep":"2026-05-12T23:21","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010010","s":"WHEATRW01","w":89.8},{"u":"12208","d":"Sami Hussain Al-Tarifi Altoum","dep":"2026-05-12T10:13","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.48},{"u":"8285","d":"Mohamed Basheer Ayas Abdelmageed","dep":"2026-05-12T13:13","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":87.5},{"u":"3120","d":"Bakri Hassan Akasha Khider","dep":"2026-05-12T16:13","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":86.54},{"u":"9312","d":"Ibrahim Hassan Nasr Saleh","dep":"2026-05-13T11:35","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09998","s":"WHEATRW01","w":90.1},{"u":"9075","d":"Abuelbashr Abdelwahab Eid Mohamed","dep":"2026-05-13T11:49","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010011","s":"WHEATRW01","w":90.04},{"u":"11579","d":"Issa Ahmed Ibrahim Adam","dep":"2026-05-13T12:28","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010030","s":"WHEATRW01","w":90.24},{"u":"14677","d":"Awad Suliman Abdelrahman Alsheikh","dep":"2026-05-13T15:26","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010016","s":"WHEATRW01","w":90.18},{"u":"12211","d":"Khalid Hamad Babiker Hamad","dep":"2026-05-13T21:32","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010015","s":"WHEATRW01","w":90.14},{"u":"12729","d":"Habeb Mohamed Ahmed Hamad","dep":"2026-05-14T00:25","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010028","s":"WHEATRW01","w":90.26},{"u":"12209","d":"Sufyan Abdelgadir Albagir Alfaki","dep":"2026-05-13T18:17","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010023","s":"WHEATRW01","w":89.96},{"u":"14695","d":"Isam Eldean Mahmoued Makki","dep":"2026-05-13T18:17","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010022","s":"WHEATRW01","w":89.94},{"u":"12989","d":"Naser Mohamed Khalil Osman","dep":"2026-05-13T22:03","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010014","s":"WHEATRW01","w":90.0},{"u":"12993","d":"Elfatih GismELseed Jubaralla Abdalla","dep":"2026-05-13T23:31","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010031","s":"WHEATRW01","w":89.98},{"u":"14686","d":"Sharif Idris Omer Abdalla","dep":"2026-05-14T00:08","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010032","s":"WHEATRW01","w":90.06},{"u":"14689","d":"Mohamed Saad Abdelkareem Jabir","dep":"2026-05-14T00:51","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010018","s":"WHEATRW01","w":90.0},{"u":"14687","d":"Saif Elyazal Rabieh Ibrahim","dep":"2026-05-13T22:52","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010029","s":"WHEATRW01","w":90.22},{"u":"9310","d":"Mohamed Ahmed Mahmoud Burima","dep":"2026-05-14T00:24","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010025","s":"WHEATRW01","w":90.22},{"u":"12207","d":"Mojahid Mahil Eldaw Attash","dep":"2026-05-14T01:21","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010017","s":"WHEATRW01","w":90.16},{"u":"12732","d":"Shawarga Mabrhto Woldgrash","dep":"2026-05-14T02:11","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010020","s":"WHEATRW01","w":90.12},{"u":"11578","d":"Ayman Alamin Alemam Abdalla","dep":"2026-05-14T03:03","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010026","s":"WHEATRW01","w":90.18},{"u":"6794","d":"Mohamed Abdein Abdallah Fadlallah","dep":"2026-05-13T11:17","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":86.68},{"u":"12480","d":"Abdalla Alamin Adam Ahmed","dep":"2026-05-14T11:39","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010038","s":"WHEATRW01","w":90.02},{"u":"12689","d":"Khalefa Abakr Adam Hamid","dep":"2026-05-14T11:50","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010027","s":"WHEATRW01","w":93.26},{"u":"8294","d":"Moneer Mohamed Ebaid Hassan","dep":"2026-05-14T13:49","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010033","s":"WHEATRW01","w":90.1},{"u":"13076","d":"Ayman Abdelkareem Hassan Ibrahim","dep":"2026-05-14T14:07","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010013","s":"WHEATRW01","w":90.08},{"u":"9305","d":"Atta Almanan Mahmoud Hamid Baghdad","dep":"2026-05-14T14:22","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010047","s":"WHEATRW01","w":90.12},{"u":"12877","d":"Hassan Aldaw Ibrahim Abdelmohsin","dep":"2026-05-14T15:05","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010021","s":"WHEATRW01","w":89.92},{"u":"12690","d":"Mohamed Abdelghani Abass Idress","dep":"2026-05-14T17:25","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010036","s":"WHEATRW01","w":89.34},{"u":"9044","d":"Haytham Ahmed Mohamed Arbab","dep":"2026-05-14T16:40","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010034","s":"WHEATRW01","w":90.04},{"u":"3114","d":"Anwar Gasim Mohamed","dep":"2026-05-14T16:57","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010051","s":"WHEATRW01","w":89.9},{"u":"12733","d":"Abdelrahman Ali Abdelrahman Yousif","dep":"2026-05-14T17:54","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010039","s":"WHEATRW01","w":90.22},{"u":"12734","d":"Abdalla Ahmed Ibrahim Daief","dep":"2026-05-14T22:05","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010024","s":"WHEATRW01","w":90.14},{"u":"9303","d":"Awooda Saidahmed Awooda Alsanousi","dep":"2026-05-14T22:54","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010049","s":"WHEATRW01","w":90.18},{"u":"9072","d":"Alfarazdaq Abouad Gaselsaid Gobartallah","dep":"2026-05-15T00:28","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010019","s":"WHEATRW01","w":90.2},{"u":"1364","d":"Ashraf Yagoup Mohamed Abdallah","dep":"2026-05-15T01:30","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010076","s":"WHEATRW01","w":90.24},{"u":"12205","d":"Abu Obieda Saeed Hamdeen Gabar Eldar","dep":"2026-05-15T00:09","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010035","s":"WHEATRW01","w":89.98},{"u":"12880","d":"Awad Eysa Idres Idres","dep":"2026-05-15T01:56","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010012","s":"WHEATRW01","w":90.2},{"u":"12726","d":"Samer Zainelabiden Hassan Mohamed","dep":"2026-05-15T09:07","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010050","s":"WHEATRW01","w":90.0},{"u":"3112","d":"Elsheikhidris  Basheer Alfaki Basheer","dep":"2026-05-15T09:45","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010065","s":"WHEATRW01","w":89.94},{"u":"9316","d":"Alsadig Suliman Abdalla Mohamed","dep":"2026-05-15T10:19","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010041","s":"WHEATRW01","w":89.9},{"u":"1354","d":"Amer Ahmed Numan Ibrahim","dep":"2026-05-15T10:27","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010054","s":"WHEATRW01","w":90.04},{"u":"11580","d":"Haitham Mohamed Yousif Osman","dep":"2026-05-15T17:08","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010068","s":"WHEATRW01","w":90.02},{"u":"8297","d":"Salman Abdalmonim Omer Elawad","dep":"2026-05-15T18:07","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010075","s":"WHEATRW01","w":90.02},{"u":"1366","d":"Adil Adam Musa Noureldin","dep":"2026-05-15T20:09","o":"PZU","dt":"Khartoum","km":835.0,"mn":"09986","s":"WHEATRW01","w":89.9},{"u":"3122","d":"Adam Younis Abdallah Ibrahim","dep":"2026-05-15T21:04","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010046","s":"WHEATRW01","w":89.9},{"u":"301","d":"Telal Fikri Mohamed Abubaker","dep":"2026-05-15T21:46","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010059","s":"WHEATRW01","w":90.0},{"u":"9308","d":"Mohamed Adam Osman Braima","dep":"2026-05-15T22:30","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010058","s":"WHEATRW01","w":90.1},{"u":"12210","d":"Mohamed Ibrahim Abdalla Alhaj","dep":"2026-05-15T11:09","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"Corn","w":86.34},{"u":"1645","d":"Huzaifa Mohamed Omer Ahmed","dep":"2026-05-15T13:24","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"Corn","w":86.66},{"u":"3119","d":"Abdelazim Elnour Ismail Hassan","dep":"2026-05-15T16:06","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"Corn","w":73.98},{"u":"14682","d":"Mohamed Hassan Ahmed Gaknoon","dep":"2026-05-16T12:06","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010044","s":"WHEATRW01","w":90.02},{"u":"12992","d":"Mohyeldin Ali Mahadi Khatir","dep":"2026-05-16T12:38","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010060","s":"WHEATRW01","w":90.14},{"u":"12997","d":"Mohamed Abdelrahman Mohayed Banaga","dep":"2026-05-16T13:10","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010073","s":"WHEATRW01","w":90.0},{"u":"3113","d":"Tarig Mahgoub Ali","dep":"2026-05-16T13:44","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010061","s":"WHEATRW01","w":90.22},{"u":"14684","d":"Osama Mohamed Elamin Yassen","dep":"2026-05-16T13:52","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010057","s":"WHEATRW01","w":88.62},{"u":"8288","d":"Khalid Bashir Mursal Hassan","dep":"2026-05-16T14:18","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010077","s":"WHEATRW01","w":90.14},{"u":"1357","d":"Ismael Fathi Ismael","dep":"2026-05-16T14:09","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010053","s":"WHEATRW01","w":89.74},{"u":"3121","d":"Badr Eldin Ibrahim Hassan Adam","dep":"2026-05-16T14:42","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010070","s":"WHEATRW01","w":89.9},{"u":"14690","d":"Abdulgadir Abaker Ali Omer","dep":"2026-05-16T15:10","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010074","s":"WHEATRW01","w":89.96},{"u":"9309","d":"Mujahid Elagib Mohamed Osman","dep":"2026-05-16T15:39","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010055","s":"WHEATRW01","w":89.94},{"u":"8282","d":"Motaz Abdo Ismaeil Elhag","dep":"2026-05-16T16:16","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010071","s":"WHEATRW01","w":89.9},{"u":"9043","d":"","dep":"2026-05-16T16:48","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010067","s":"WHEATRW01","w":90.02},{"u":"1356","d":"Ammar abdelmajeed mohamed","dep":"2026-05-16T17:13","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010078","s":"WHEATRW01","w":90.22},{"u":"6793","d":"Malik Ahamed Yoasif Rahma","dep":"2026-05-16T17:41","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010066","s":"WHEATRW01","w":90.02},{"u":"12994","d":"Elsadig Mohamed Yousif Ibrahim","dep":"2026-05-16T18:18","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010083","s":"WHEATRW01","w":89.96},{"u":"12988","d":"Ayoub Musa Ahmed Musa","dep":"2026-05-16T18:27","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010048","s":"WHEATRW01","w":90.18},{"u":"9315","d":"Bakheit Elfadil Bakheit Mukhtar","dep":"2026-05-16T21:32","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010079","s":"WHEATRW01","w":90.02},{"u":"3115","d":"Marzog Ali Hago Elatmani","dep":"2026-05-16T22:07","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010069","s":"WHEATRW01","w":90.22},{"u":"9306","d":"Sayed Ali Hashim Ibrahim","dep":"2026-05-16T22:24","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010084","s":"WHEATRW01","w":90.2},{"u":"14693","d":"Mahajoub Abnaoof Mohamed Elgizoli","dep":"2026-05-16T22:03","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010045","s":"WHEATRW01","w":89.94},{"u":"14692","d":"Mohamed Alnadeef Matar Obaid","dep":"2026-05-16T23:22","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010062","s":"WHEATRW01","w":90.06},{"u":"12993","d":"Elfatih GismELseed Jubaralla Abdalla","dep":"2026-05-09T16:53","o":"Abo Hamad","dt":"Barbar","km":190.0,"mn":"Commercial","s":"WHEATRW01","w":35.92},{"u":"12691","d":"Mohammed Abdelgadir Abakr Omer","dep":"2026-05-05T10:50","o":"Abo Hamad","dt":"Khartoum","km":575.0,"mn":"Commercial","s":"Corn","w":88.52},{"u":"8336","d":"Eldawi Mohamed Eldawi Mohamed","dep":"2026-05-17T11:44","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010085","s":"WHEATRW01","w":90.14},{"u":"14685","d":"Yahia Hassan Abuanga Mohamed","dep":"2026-05-17T16:41","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010087","s":"WHEATRW01","w":90.68},{"u":"9304","d":"Mountsir Gariballa Elsaid Adam","dep":"2026-05-17T11:37","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010088","s":"WHEATRW01","w":90.18},{"u":"9074","d":"Mobarak Omer Mohamed Omer","dep":"2026-05-17T14:22","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010072","s":"WHEATRW01","w":90.02},{"u":"12995","d":"Mohamed Mosa Onoer Mohamed","dep":"2026-05-17T11:42","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010064","s":"WHEATRW01","w":89.92},{"u":"1646","d":"Amar Adil Mohamed Ali Ibrahim","dep":"2026-05-17T14:09","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010056","s":"WHEATRW01","w":90.04},{"u":"9313","d":"Samoal Mohamed Saleem Ahmed","dep":"2026-05-17T14:44","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010086","s":"WHEATRW01","w":90.16},{"u":"9302","d":"Yasir Abas Mohamed Ali Omer","dep":"2026-05-17T16:39","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010082","s":"WHEATRW01","w":89.9},{"u":"6795","d":"Abdulmoneim Fadlalmawla Mohammad Hamed","dep":"2026-05-17T17:24","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010063","s":"WHEATRW01","w":89.64},{"u":"12203","d":"Ashraf Mohamed Issa Osman","dep":"2026-05-17T18:22","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010095","s":"WHEATRW01","w":89.96},{"u":"12989","d":"Naser Mohamed Khalil Osman","dep":"2026-05-17T18:19","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010094","s":"WHEATRW01","w":90.06},{"u":"12728","d":"Noureldean Ahmed Alhamem Mohamed","dep":"2026-05-17T20:50","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010089","s":"WHEATRW01","w":90.1},{"u":"12735","d":"Fathi Bushra Bakheat Balal","dep":"2026-05-17T21:28","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010092","s":"WHEATRW01","w":90.8},{"u":"9314","d":"Idris Mohamed Mahmoud Mohamed","dep":"2026-05-17T21:34","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010052","s":"WHEATRW01","w":90.2},{"u":"12208","d":"Sami Hussain Al-Tarifi Altoum","dep":"2026-05-17T21:38","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010080","s":"WHEATRW01","w":89.96},{"u":"3120","d":"Ali Ahmed Ismael Mohamed","dep":"2026-05-17T22:27","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010096","s":"WHEATRW01","w":89.98},{"u":"9071","d":"Sanad Saif Mohamed Abdalla","dep":"2026-05-17T22:48","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010037","s":"WHEATRW01","w":89.9},{"u":"12480","d":"Abdalla Alamin Adam Ahmed","dep":"2026-05-17T21:51","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010105","s":"WHEATRW01","w":90.16},{"u":"12730","d":"Osman Hussein Mohamed Abakar","dep":"2026-05-17T23:05","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010081","s":"WHEATRW01","w":90.18},{"u":"9041","d":"Rawi Alsamani Yousif Ahmed","dep":"2026-05-18T00:20","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010040","s":"WHEATRW01","w":90.18},{"u":"9073","d":"Ahmed Obaid Mohmed Ali","dep":"2026-05-18T00:24","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010102","s":"WHEATRW01","w":90.16},{"u":"14679","d":"Idres Haroon Yousif Idres","dep":"2026-05-18T02:10","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010103","s":"WHEATRW01","w":90.06},{"u":"9075","d":"Abuelbashr Abdelwahab Eid Mohamed","dep":"2026-05-18T09:51","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010107","s":"WHEATRW01","w":90.22},{"u":"12729","d":"Habeb Mohamed Ahmed Hamad","dep":"2026-05-18T10:10","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010098","s":"WHEATRW01","w":90.06},{"u":"9042","d":"Tarig Mohamed Bahsar Idrees","dep":"2026-05-18T10:38","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010042","s":"WHEATRW01","w":90.08},{"u":"12206","d":"Saleem Mohamed Saleem Ahmed","dep":"2026-05-18T11:28","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010099","s":"WHEATRW01","w":89.9},{"u":"9312","d":"Ibrahim Hassan Nasr Saleh","dep":"2026-05-18T13:49","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010106","s":"WHEATRW01","w":90.16},{"u":"6796","d":"Hisham Eldin Mohamed Musa Mohamed","dep":"2026-05-18T15:58","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010131","s":"WHEATRW01","w":79.86},{"u":"12689","d":"Khalefa Abakr Adam Hamid","dep":"2026-05-18T16:15","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010108","s":"WHEATRW01","w":90.04},{"u":"14680","d":"Khalid Hassan Omer Elbadawi","dep":"2026-05-18T17:14","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010043","s":"WHEATRW01","w":90.0},{"u":"12732","d":"Shawarga Mabrhto Woldgrash","dep":"2026-05-18T17:32","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010097","s":"WHEATRW01","w":89.9},{"u":"14681","d":"Elsadig Mohamed Arbab Suliman","dep":"2026-05-18T17:55","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010109","s":"WHEATRW01","w":90.06},{"u":"12691","d":"Mohammed Abdelgadir Abakr Omer","dep":"2026-05-18T21:18","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010111","s":"WHEATRW01","w":89.96},{"u":"9044","d":"Haytham Ahmed Mohamed Arbab","dep":"2026-05-18T20:52","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010113","s":"WHEATRW01","w":89.92},{"u":"12210","d":"Mohamed Ibrahim Abdalla Alhaj","dep":"2026-05-18T22:08","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010093","s":"WHEATRW01","w":90.18},{"u":"14689","d":"Eisa Mohamed Adam Sheiga","dep":"2026-05-18T22:38","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010115","s":"WHEATRW01","w":90.12},{"u":"1645","d":"Huzaifa Mohamed Omer Ahmed","dep":"2026-05-18T23:10","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010116","s":"WHEATRW01","w":90.14},{"u":"12205","d":"Abu Obieda Saeed Hamdeen Gabar Eldar","dep":"2026-05-18T23:16","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010125","s":"WHEATRW01","w":90.02},{"u":"3114","d":"Anwar Gasim mohamed abdallah","dep":"2026-05-19T02:16","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010133","s":"WHEATRW01","w":90.08},{"u":"14694","d":"Ibrahim Adam Idress Ibrahim","dep":"2026-05-19T11:01","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010091","s":"WHEATRW01","w":89.88},{"u":"12209","d":"Sufyan Abdelgadir Albagir Alfaki","dep":"2026-05-19T11:23","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010132","s":"WHEATRW01","w":89.84},{"u":"14676","d":"Adiso Nigousi Biati Tigari","dep":"2026-05-19T11:37","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010100","s":"WHEATRW01","w":89.9},{"u":"13076","d":"Ayman Abdelkareem Hassan Ibrahim","dep":"2026-05-19T14:52","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010130","s":"WHEATRW01","w":90.04},{"u":"3119","d":"Abdalazim alnour asmaeil Hassan","dep":"2026-05-19T15:22","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010101","s":"WHEATRW01","w":90.12},{"u":"12733","d":"Abdelrahman Ali Abdelrahman Yousif","dep":"2026-05-19T18:11","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010122","s":"WHEATRW01","w":90.54},{"u":"6794","d":"Mohamed Abdein Abdallah Fadlallah","dep":"2026-05-19T21:25","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010117","s":"WHEATRW01","w":89.94},{"u":"12880","d":"Awad Eysa Idres Idres","dep":"2026-05-19T21:55","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010129","s":"WHEATRW01","w":90.12},{"u":"3117","d":"Elzibair Abdallah Elzibair MohamedAhmed","dep":"2026-05-19T23:04","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010104","s":"WHEATRW01","w":90.1},{"u":"11579","d":"Issa Ahmed Ibrahim Adam","dep":"2026-05-19T21:32","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010119","s":"WHEATRW01","w":89.98},{"u":"9316","d":"Alsadig Suliman Abdalla Mohamed","dep":"2026-05-19T23:17","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010123","s":"WHEATRW01","w":90.02},{"u":"14682","d":"Mohamed Hassan Ahmed Gaknoon","dep":"2026-05-19T22:16","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010125","s":"WHEATRW01","w":90.06},{"u":"12993","d":"Elfatih GismELseed Jubaralla Abdalla","dep":"2026-05-19T23:35","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010112","s":"WHEATRW01","w":90.08},{"u":"12877","d":"Hassan Aldaw Ibrahim Abdelmohsin","dep":"2026-05-20T00:01","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010110","s":"WHEATRW01","w":90.16},{"u":"11578","d":"Ayman Alamin Alemam Abdalla","dep":"2026-05-20T00:23","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010126","s":"WHEATRW01","w":90.08},{"u":"8294","d":"Moneer Mohamed Ebaid Hassan","dep":"2026-05-20T01:09","o":"PZU","dt":"Atbara","km":500.0,"mn":"010134","s":"WHEATRW01","w":90.1},{"u":"8288","d":"Khalid Bashir Mursal Hassan","dep":"2026-05-19T10:43","o":"PZU","dt":"Atbara","km":500.0,"mn":"09720","s":"WHEATRW01","w":89.06},{"u":"12690","d":"Mohamed Abdelghani Abass Idress","dep":"2026-05-19T12:15","o":"PZU","dt":"Atbara","km":500.0,"mn":"09767","s":"WHEATRW01","w":89.86},{"u":"14687","d":"Saif Elyazal Rabieh Ibrahim","dep":"2026-05-19T12:36","o":"PZU","dt":"Atbara","km":500.0,"mn":"09792","s":"WHEATRW01","w":89.88},{"u":"14686","d":"Sharif Idris Omer Abdalla","dep":"2026-05-19T13:02","o":"PZU","dt":"Atbara","km":500.0,"mn":"09794","s":"WHEATRW01","w":89.9},{"u":"12211","d":"Khalid Hamad Babiker Hamad","dep":"2026-05-19T13:42","o":"PZU","dt":"Atbara","km":500.0,"mn":"09793","s":"WHEATRW01","w":89.94},{"u":"14677","d":"Awad Suliman Abdelrahman Alsheikh","dep":"2026-05-19T14:02","o":"PZU","dt":"Atbara","km":500.0,"mn":"09795","s":"WHEATRW01","w":89.94},{"u":"9303","d":"Anas Khirsan MohamedAhmed Ali","dep":"2026-05-20T14:18","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010127","s":"WHEATRW01","w":90.18},{"u":"1354","d":"Amer Ahamad Noman Ibrahim","dep":"2026-05-20T15:05","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010136","s":"WHEATRW01","w":90.04},{"u":"14692","d":"Mohamed Alnadeef Matar Obaid","dep":"2026-05-20T17:30","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010142","s":"WHEATRW01","w":90.16},{"u":"3121","d":"Badr Eldin Ibrahim Hassan Adam","dep":"2026-05-20T18:15","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010141","s":"WHEATRW01","w":90.18},{"u":"1364","d":"Ashraf Yagoup Mohamed Abdallah","dep":"2026-05-20T21:39","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010140","s":"WHEATRW01","w":89.16},{"u":"12726","d":"Samer Zainelabiden Hassan Mohamed","dep":"2026-05-20T22:57","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010137","s":"WHEATRW01","w":90.2},{"u":"9043","d":"Mortada Abakar Ibrahim","dep":"2026-05-21T00:54","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010138","s":"WHEATRW01","w":90.18},{"u":"8286","d":"Sufyan Ahamed Mohamed","dep":"2026-05-20T23:25","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010143","s":"WHEATRW01","w":90.04},{"u":"3122","d":"Adam Younis Abdallah Ibrahim","dep":"2026-05-20T23:46","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010139","s":"WHEATRW01","w":90.0},{"u":"12734","d":"Abdalla Ahmed Ibrahim Daief","dep":"2026-05-20T11:36","o":"PZU","dt":"Atbara","km":500.0,"mn":"010151","s":"WHEATRW01","w":90.0},{"u":"3112","d":"Elsheikhidris  Basheer Alfaki Basheer","dep":"2026-05-20T15:45","o":"PZU","dt":"Atbara","km":500.0,"mn":"010153","s":"WHEATRW01","w":90.2},{"u":"11580","d":"Haitham Mohamed Yousif Osman","dep":"2026-05-20T15:03","o":"PZU","dt":"Atbara","km":500.0,"mn":"010152","s":"WHEATRW01","w":89.82},{"u":"9305","d":"Telal Fikri Mohamed Abubaker","dep":"2026-05-20T17:32","o":"PZU","dt":"Atbara","km":500.0,"mn":"010154","s":"WHEATRW01","w":90.16},{"u":"14690","d":"Abdulgadir Abaker Ali Omer","dep":"2026-05-20T17:20","o":"PZU","dt":"Atbara","km":500.0,"mn":"09928","s":"WHEATRW01","w":90.0},{"u":"12997","d":"Mohamed Abdelrahman Mohayed Banaga","dep":"2026-05-20T21:24","o":"PZU","dt":"Atbara","km":500.0,"mn":"09796","s":"WHEATRW01","w":89.86},{"u":"8282","d":"Motaz Abdo Ismaeil Elhag","dep":"2026-05-21T20:14","o":"PZU","dt":"Atbara","km":500.0,"mn":"010178","s":"WHEATRW01","w":89.94},{"u":"8336","d":"Eldawi Mohamed Eldawi Mohamed","dep":"2026-05-22T04:05","o":"PZU","dt":"Atbara","km":500.0,"mn":"010177","s":"WHEATRW01","w":90.04},{"u":"12994","d":"Elsadig Mohamed Yousif Ibrahim","dep":"2026-05-21T23:23","o":"PZU","dt":"Atbara","km":500.0,"mn":"010179","s":"WHEATRW01","w":90.5},{"u":"14686","d":"Sharif Idris Omer Abdalla","dep":"2026-05-22T00:03","o":"PZU","dt":"Atbara","km":500.0,"mn":"010176","s":"WHEATRW01","w":90.24},{"u":"14684","d":"Osama Mohamed Elamin Yassen","dep":"2026-05-22T03:03","o":"PZU","dt":"Atbara","km":500.0,"mn":"010188","s":"WHEATRW01","w":90.34},{"u":"12995","d":"Mohamed Mosa Onoer Mohamed","dep":"2026-05-22T03:35","o":"PZU","dt":"Atbara","km":500.0,"mn":"010185","s":"WHEATRW01","w":90.2},{"u":"14685","d":"Yahia Hassan Abuanga Mohamed","dep":"2026-05-22T00:53","o":"PZU","dt":"Atbara","km":500.0,"mn":"010180","s":"WHEATRW01","w":90.08},{"u":"14679","d":"Idres Haroon Yousif Idres","dep":"2026-05-22T09:33","o":"PZU","dt":"Atbara","km":500.0,"mn":"010186","s":"WHEATRW01","w":90.18},{"u":"12690","d":"Mohamed Abdelghani Abass Idress","dep":"2026-05-22T15:06","o":"PZU","dt":"Atbara","km":500.0,"mn":"010182","s":"WHEATRW01","w":90.08},{"u":"9074","d":"Mobarak Omer Mohamed Omer","dep":"2026-05-22T16:47","o":"PZU","dt":"Atbara","km":500.0,"mn":"010183","s":"WHEATRW01","w":89.98},{"u":"9315","d":"Bakheit Elfadil Bakheit Mukhtar","dep":"2026-05-22T23:03","o":"PZU","dt":"Atbara","km":500.0,"mn":"010174","s":"WHEATRW01","w":90.14},{"u":"8285","d":"Mohamed Basheer Ayas Abdelmageed","dep":"2026-05-22T23:39","o":"PZU","dt":"Atbara","km":500.0,"mn":"010184","s":"WHEATRW01","w":90.44},{"u":"12732","d":"Shawarga Mabrhto Woldgrash","dep":"2026-05-23T01:14","o":"PZU","dt":"Atbara","km":500.0,"mn":"010181","s":"WHEATRW01","w":90.26},{"u":"9314","d":"Idris Mohamed Mahmoud Mohamed","dep":"2026-05-23T02:40","o":"PZU","dt":"Atbara","km":500.0,"mn":"010193","s":"WHEATRW01","w":90.18},{"u":"9306","d":"Sayed Ali Hashim Ibrahim","dep":"2026-05-23T02:06","o":"PZU","dt":"Atbara","km":500.0,"mn":"010196","s":"WHEATRW01","w":90.02},{"u":"14693","d":"Mahajoub Abnaoof Mohamed Elgizoli","dep":"2026-05-21T20:14","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010147","s":"WHEATRW01","w":90.0},{"u":"1366","d":"Adil Adam Musa Noureldin","dep":"2026-05-21T20:14","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010144","s":"WHEATRW01","w":89.98},{"u":"3113","d":"Tarig Mahgoub Ali","dep":"2026-05-21T20:14","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010146","s":"WHEATRW01","w":90.56},{"u":"1357","d":"Ismael Fathi Ismael","dep":"2026-05-21T22:24","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010173","s":"WHEATRW01","w":90.14},{"u":"9308","d":"Mohamed Adam Osman Braima","dep":"2026-05-21T22:31","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010148","s":"WHEATRW01","w":90.96},{"u":"14695","d":"Isam Eldean Mahmoued Makki","dep":"2026-05-22T02:39","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010156","s":"WHEATRW01","w":90.24},{"u":"12989","d":"Naser Mohamed Khalil Osman","dep":"2026-05-22T00:52","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010159","s":"WHEATRW01","w":90.02},{"u":"6795","d":"Abdulmoneim Fadlalmawla Mohammad Hamed","dep":"2026-05-22T01:37","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010155","s":"WHEATRW01","w":90.0},{"u":"12207","d":"Mojahid Mahil Eldaw Attash","dep":"2026-05-22T01:37","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010145","s":"WHEATRW01","w":90.0},{"u":"12992","d":"Mohyeldin Ali Mahadi Khatir","dep":"2026-05-22T03:41","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010157","s":"WHEATRW01","w":90.36},{"u":"12203","d":"Ashraf Mohamed Issa Osman","dep":"2026-05-22T04:09","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010150","s":"WHEATRW01","w":89.84},{"u":"9073","d":"Ahmed Obaid Mohmed Ali","dep":"2026-05-22T15:25","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010158","s":"WHEATRW01","w":90.14},{"u":"8288","d":"Khalid Bashir Mursal Hassan","dep":"2026-05-22T14:24","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010149","s":"WHEATRW01","w":89.52},{"u":"6793","d":"Malik Ahamed Yoasif Rahma","dep":"2026-05-22T14:37","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010170","s":"WHEATRW01","w":90.0},{"u":"9309","d":"Mujahid Elagib Mohamed Osman","dep":"2026-05-22T18:20","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010160","s":"WHEATRW01","w":89.96},{"u":"3115","d":"Marzog Ali Hago Elatmani","dep":"2026-05-22T16:56","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010171","s":"WHEATRW01","w":91.48},{"u":"12730","d":"Osman Hussein Mohamed Abakar","dep":"2026-05-22T17:16","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010161","s":"WHEATRW01","w":90.2},{"u":"9312","d":"Ibrahim Hassan Nasr Saleh","dep":"2026-05-22T17:40","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010172","s":"WHEATRW01","w":90.06},{"u":"12728","d":"Noureldean Ahmed Alhamem Mohamed","dep":"2026-05-22T22:15","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010163","s":"WHEATRW01","w":90.08},{"u":"9304","d":"Montaser Gariballah alsayed","dep":"2026-05-23T00:10","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010164","s":"WHEATRW01","w":90.18},{"u":"9302","d":"Yasir Abas Mohamed Ali Omer","dep":"2026-05-23T00:48","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010162","s":"WHEATRW01","w":90.16},{"u":"9071","d":"Ayman Osman Salih Osman","dep":"2026-05-23T02:14","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010166","s":"WHEATRW01","w":90.18},{"u":"12205","d":"Abu Obieda Saeed Hamdeen Gabar Eldar","dep":"2026-05-23T10:19","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010168","s":"WHEATRW01","w":89.96},{"u":"14687","d":"Saif Elyazal Rabieh Ibrahim","dep":"2026-05-23T11:39","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010135","s":"WHEATRW01","w":89.98},{"u":"12734","d":"Abdalla Ahmed Ibrahim Daief","dep":"2026-05-23T12:04","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010205","s":"WHEATRW01","w":90.2},{"u":"14694","d":"Ibrahim Adam Idress Ibrahim","dep":"2026-05-23T12:19","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010167","s":"WHEATRW01","w":90.1},{"u":"12735","d":"Fathi Bushra Bakheat Balal","dep":"2026-05-23T15:59","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010198","s":"WHEATRW01","w":89.7},{"u":"9042","d":"Tarig Mohamed Bahsar Idrees","dep":"2026-05-23T16:35","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010202","s":"WHEATRW01","w":90.06},{"u":"3112","d":"Elsheikhidris  Basheer Alfaki Basheer","dep":"2026-05-23T17:05","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010209","s":"WHEATRW01","w":89.24},{"u":"12691","d":"Mohammed Abdelgadir Abakr Omer","dep":"2026-05-23T17:35","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010203","s":"WHEATRW01","w":90.0},{"u":"12880","d":"Awad Eysa Idres Idres","dep":"2026-05-23T20:51","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010169","s":"WHEATRW01","w":90.14},{"u":"14681","d":"Elsadig Mohamed Arbab Suliman","dep":"2026-05-23T18:07","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010204","s":"WHEATRW01","w":89.28},{"u":"9316","d":"Alsadig Suliman Abdalla Mohamed","dep":"2026-05-23T21:46","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010199","s":"WHEATRW01","w":89.26},{"u":"8297","d":"Salman Abdalmonim Omer Elawad","dep":"2026-05-23T22:33","o":"PZU","dt":"Khartoum","km":835.0,"mn":"010165","s":"WHEATRW01","w":90.16},{"u":"14676","d":"Adiso Nigousi Biati Tigari","dep":"2026-05-23T09:58","o":"PZU","dt":"Atbara","km":500.0,"mn":"010194","s":"WHEATRW01","w":89.9},{"u":"3120","d":"Ali Ahmed Ismael Mohamed","dep":"2026-05-23T21:22","o":"PZU","dt":"Atbara","km":500.0,"mn":"010175","s":"WHEATRW01","w":90.2},{"u":"14689","d":"Eisa Mohamed Adam Sheiga","dep":"2026-05-23T22:29","o":"PZU","dt":"Atbara","km":500.0,"mn":"010192","s":"WHEATRW01","w":90.02}];
+
+
+let allRows=[], charts={};
+
+// ══════════════════════════════════════════
+// LOCK
+// ══════════════════════════════════════════
+const VP='STTrans2026', AP='Admin@STTrans!';
+function chkPass(){
+  const v=document.getElementById('pInp').value.trim(), e=document.getElementById('lErr');
+  if(v===AP){unlock(true)}else if(v===VP){unlock(false)}else{
+    e.style.display='block';
+    document.getElementById('pInp').style.borderColor='#ff1744';
+    document.getElementById('pInp').value='';
+    setTimeout(()=>{e.style.display='none';document.getElementById('pInp').style.borderColor='var(--border)'},3000);
+  }
+}
+function unlock(admin){
+  const ls=document.getElementById('lockScreen');
+  ls.style.opacity='0';ls.style.transition='opacity .4s';
+  setTimeout(()=>ls.style.display='none',400);
+  if(admin){
+    document.getElementById('adminB').style.display='flex';
+    document.getElementById('refBtn').style.display='flex';
+    toast('✅ Admin mode — you can refresh data');
+  } else {
+    toast('👀 Viewer mode — read only');
+  }
+  updateTime();
+  buildAll(DAILY,ROUTES,SHIPS,DRIVERS,UNITS);
+  setTimeout(()=>{ _allRows=buildFakeRows(DAILY,ROUTES); renderTable(_allRows); },300);
+  _allRows = buildFakeRows(DAILY,ROUTES);
+  renderTable(_allRows);
+}
+function togEye(){const i=document.getElementById('pInp'),b=document.querySelector('.l-eye');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'👁':'🙈'}
+window.addEventListener('load',()=>document.getElementById('pInp').focus());
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function switchTab(n){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===n));
+  document.querySelectorAll('.tab-page').forEach((p,i)=>p.classList.toggle('active',i===n));
+}
+
+// ══════════════════════════════════════════
+// FILE UPLOAD
+// ══════════════════════════════════════════
+document.getElementById('xlsxInput').addEventListener('change',function(){
+  const f=this.files[0]; if(!f)return;
+  const btn=document.getElementById('refBtn'), lbl=document.getElementById('refLbl'), sp=document.getElementById('spin');
+  btn.disabled=true; lbl.style.display='none'; sp.style.display='inline-block';
+  const r=new FileReader();
+  r.onload=function(e){
+    try{
+      const wb=f.name.endsWith('.csv')?XLSX.read(e.target.result,{type:'string',cellDates:true}):XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+      const sn=wb.SheetNames.indexOf('Data')>=0?'Data':wb.SheetNames[0];
+      const raw=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null});
+      let hRow=-1;
+      for(let i=0;i<raw.length;i++){if(raw[i]&&raw[i].some(c=>c&&String(c).toLowerCase().replace(/\s/g,'').includes('unitno'))){hRow=i;break}}
+      if(hRow<0){toast('⚠ Could not find header row');return}
+      const hdr=raw[hRow].map(h=>h?String(h).trim():'');
+      const gc=n=>hdr.findIndex(h=>h.toLowerCase().replace(/[\s\n]/g,'').includes(n));
+      const C={unit:gc('unitno'),drv:gc('drivername'),dep:gc('depart'),orig:gc('origin'),dest:gc('destination'),dist:gc('distance'),ship:gc('shipmenttype'),wt:gc('weight')};
+      allRows=[];
+      for(let i=hRow+1;i<raw.length;i++){
+        const r2=raw[i]; if(!r2)continue;
+        const w=parseFloat(r2[C.wt]); if(!r2[C.unit]||isNaN(w)||w<=0)continue;
+        let dep=r2[C.dep]; if(dep&&typeof dep==='string')dep=new Date(dep);
+        const dest=String(r2[C.dest]||'').trim();
+        const destL=dest.toLowerCase().includes('khart')?'Khartoum':dest.toLowerCase().includes('atbar')?'Atbara':dest.toLowerCase().includes('barbar')?'Barbar':dest;
+        allRows.push({unit:String(r2[C.unit]||''),drv:String(r2[C.drv]||''),dep:dep instanceof Date?dep:null,orig:String(r2[C.orig]||'').trim(),dest:destL,dist:parseFloat(r2[C.dist])||0,ship:String(r2[C.ship]||'').trim(),wt:w});
+      }
+      if(!allRows.length){toast('⚠ No valid rows found');return}
+      const {daily,routes,ships,drivers,units}=aggregate(allRows);
+      buildAll(daily,routes,ships,drivers,units);
+      renderTable(allRows);
+      toast('✅ Updated from: '+f.name);
+      updateTime();
+    }catch(err){toast('⚠ Error: '+err.message);console.error(err)}
+    finally{btn.disabled=false;lbl.style.display='inline';sp.style.display='none'}
+  };
+  f.name.endsWith('.csv')?r.readAsText(f):r.readAsArrayBuffer(f);
+  this.value='';
+});
+
+function aggregate(rows){
+  const daily={},routes={},ships={},drvMap={},unitMap={};
+  rows.forEach(r=>{
+    if(r.dep){
+      const k=(r.dep.getMonth()+1)+'/'+(r.dep.getDate());
+      if(!daily[k])daily[k]={t:0,w:0,k:0};
+      daily[k].t++;daily[k].w+=r.wt;daily[k].k+=r.dist;
+    }
+    const rk=r.orig+' → '+r.dest;
+    if(!routes[rk])routes[rk]={t:0,w:0,k:0};
+    routes[rk].t++;routes[rk].w+=r.wt;routes[rk].k+=r.dist;
+    ships[r.ship]=(ships[r.ship]||0)+r.wt;
+    if(r.drv&&r.drv.length>2){
+      if(!drvMap[r.drv])drvMap[r.drv]={t:0,w:0,k:0,u:r.unit};
+      drvMap[r.drv].t++;drvMap[r.drv].w+=r.wt;drvMap[r.drv].k+=r.dist;
+    }
+    if(!unitMap[r.unit])unitMap[r.unit]={t:0,w:0,k:0,d:r.drv};
+    unitMap[r.unit].t++;unitMap[r.unit].w+=r.wt;unitMap[r.unit].k+=r.dist;
+  });
+  const sortD=Object.entries(daily).sort((a,b)=>new Date('2026/'+a[0])-new Date('2026/'+b[0])).map(([d,v])=>({d,t:v.t,w:parseFloat(v.w.toFixed(1)),k:Math.round(v.k)}));
+  const top10drv=Object.entries(drvMap).sort((a,b)=>b[1].t-a[1].t).slice(0,10).map(([n,v])=>({n,t:v.t,w:parseFloat(v.w.toFixed(1)),k:Math.round(v.k),u:v.u}));
+  const top10unit=Object.entries(unitMap).sort((a,b)=>b[1].t-a[1].t).slice(0,10).map(([u,v])=>({u,t:v.t,w:parseFloat(v.w.toFixed(1)),k:Math.round(v.k),d:v.d}));
+  Object.keys(routes).forEach(k=>{routes[k].w=Math.round(routes[k].w);routes[k].k=Math.round(routes[k].k)});
+  Object.keys(ships).forEach(k=>ships[k]=Math.round(ships[k]));
+  return{daily:sortD,routes,ships,drivers:top10drv,units:top10unit};
+}
+
+// ══════════════════════════════════════════
+// BUILD ALL
+// ══════════════════════════════════════════
+function buildAll(daily,routes,ships,drivers,units){
+  const totTrips=daily.reduce((s,d)=>s+d.t,0);
+  const totVol=daily.reduce((s,d)=>s+d.w,0);
+  const totKM=daily.reduce((s,d)=>s+d.k,0);
+  const lastVol=daily.length?daily[daily.length-1].w:0;
+  const routeCount=Object.keys(routes).length;
+  const pct=(v,t)=>Math.min(Math.round(v/t*100),200);
+  const fmt=n=>Math.round(n).toLocaleString();
+
+  // Alert
+  document.getElementById('aVolPct').textContent=pct(totVol,TARGETS.volume)+'%';
+  document.getElementById('aKmPct').textContent=pct(totKM,TARGETS.km)+'%';
+  document.getElementById('aTrpPct').textContent=pct(totTrips,TARGETS.trips)+'%';
+  if(daily.length){document.getElementById('aPeriod').textContent=daily[0].d+' – '+daily[daily.length-1].d+' May 2026'}
+
+  // KPIs
+  const kpis=[
+    {v:fmt(totTrips),l:'Total Trips',e:'🚛',bar:'bb',vc:'cb',tgt:'Target: '+TARGETS.trips,pv:pct(totTrips,TARGETS.trips),pc:'linear-gradient(90deg,#00b0ff,#0081cb)'},
+    {v:fmt(totVol),l:'Volume (MT)',e:'⚖️',bar:'bg',vc:'cg',tgt:'Target: 42,504 MT',pv:pct(totVol,TARGETS.volume),pc:'linear-gradient(90deg,#00e676,#00c853)'},
+    {v:fmt(totKM),l:'Total KM',e:'🗺️',bar:'br',vc:'cr',tgt:'Target: 383,465 km',pv:pct(totKM,TARGETS.km),pc:'linear-gradient(90deg,#ff6d00,#e65100)'},
+    {v:fmt(lastVol),l:'Latest Day MT',e:'📅',bar:'ba',vc:'ca',tgt:'Target: 1,371 MT/day',pv:pct(lastVol,TARGETS.dailyVol),pc:'linear-gradient(90deg,#ffea00,#f9a825)'},
+    {v:routeCount,l:'Active Routes',e:'🏁',bar:'bp',vc:'cp',tgt:'PZU · Abo Hamad',pv:100,pc:'linear-gradient(90deg,#76ff03,#558b2f)'},
+  ];
+  document.getElementById('kpiRow').innerHTML=kpis.map(k=>`
+    <div class="kpi">
+      <div class="kpi-bar ${k.bar}"></div>
+      <div class="kpi-em">${k.e}</div>
+      <div class="kpi-val ${k.vc}">${k.v}</div>
+      <div class="kpi-lbl">${k.l}</div>
+      <div class="kpi-tgt">${k.tgt}</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(k.pv,100)}%;background:${k.pc}"></div></div>
+      <div class="prog-lbl"><span>0</span><span>${k.pv}%</span></div>
+    </div>`).join('');
+
+  // Achievement cards
+  const days=daily.length, mtdVolT=Math.round(TARGETS.volume*days/31), mtdKmT=Math.round(TARGETS.km*days/31), mtdTrpT=Math.round(TARGETS.trips*days/31);
+  const ach=[
+    {l:'Volume vs MTD Target',v:fmt(totVol)+' MT',p:pct(totVol,mtdVolT),good:pct(totVol,mtdVolT)>=100},
+    {l:'Volume vs Full Month',v:fmt(totVol)+' MT',p:pct(totVol,TARGETS.volume),good:pct(totVol,TARGETS.volume)>=100},
+    {l:'KM vs MTD Target',v:fmt(totKM)+' km',p:pct(totKM,mtdKmT),good:pct(totKM,mtdKmT)>=100},
+    {l:'KM vs Full Month',v:fmt(totKM)+' km',p:pct(totKM,TARGETS.km),good:pct(totKM,TARGETS.km)>=100},
+    {l:'Trips vs MTD Target',v:fmt(totTrips)+' trips',p:pct(totTrips,mtdTrpT),good:pct(totTrips,mtdTrpT)>=100},
+    {l:'Trips vs Full Month',v:fmt(totTrips)+' trips',p:pct(totTrips,TARGETS.trips),good:pct(totTrips,TARGETS.trips)>=100},
+    {l:'Avg Volume / Day',v:(totVol/days).toFixed(0)+' MT',p:pct(totVol/days,TARGETS.dailyVol),good:pct(totVol/days,TARGETS.dailyVol)>=100},
+    {l:'Avg Trips / Day',v:(totTrips/days).toFixed(1)+' trips',p:pct(totTrips/days,TARGETS.dailyTrips),good:pct(totTrips/days,TARGETS.dailyTrips)>=100},
+  ];
+  document.getElementById('achRow').innerHTML=ach.map(a=>`
+    <div class="ach ${a.good?'ga':'wa'}">
+      <div class="ach-l">${a.l}</div>
+      <div class="ach-v" style="color:${a.good?'#00e676':'#ffea00'}">${a.v}</div>
+      <div class="ach-p" style="color:${a.good?'#00e676':'#ffea00'}">${a.good?'✓':'⚠'} ${a.p}% of target</div>
+    </div>`).join('');
+
+  // Cargo legend
+  const totalShip=Object.values(ships).reduce((a,b)=>a+b,0);
+  const sc=['#00e676','#ffea00','#00b0ff','#ff6d00'];
+  document.getElementById('cargoLeg').innerHTML=Object.entries(ships).map(([k,v],i)=>
+    `<div style="display:flex;align-items:center;gap:7px"><div style="width:9px;height:9px;border-radius:50%;background:${sc[i]||'#888'}"></div><span>${k} — ${fmt(v)} MT (${Math.round(v/totalShip*100)}%)</span></div>`
+  ).join('');
+
+  // Route performance cards
+  const totalRtTrips=Object.values(routes).reduce((s,v)=>s+v.t,0);
+  document.getElementById('routePerf').innerHTML=Object.entries(routes).map(([k,v],i)=>{
+    const pct2=Math.round(v.t/totalRtTrips*100);
+    const cols=['#00e676','#00b0ff','#ffea00','#ff6d00'];
+    return`<div class="rp-item">
+      <div class="rp-head"><span class="rp-name">${k}</span><span class="rp-pct" style="color:${cols[i]||'#888'}">${pct2}% of trips</span></div>
+      <div class="rp-bar"><div class="rp-fill" style="width:${pct2}%;background:${cols[i]||'#888'}"></div></div>
+      <div class="rp-stats"><span><b>${v.t}</b> trips</span><span><b>${fmt(v.w)}</b> MT</span><span><b>${fmt(v.k)}</b> km</span><span><b>${(v.w/v.t).toFixed(1)}</b> MT/trip</span></div>
+    </div>`;
+  }).join('');
+
+  // Driver list
+  document.getElementById('driverList').innerHTML=drivers.map((d,i)=>`
+    <div class="du-item">
+      <div class="du-rank ${i<3?'top':''}">${['🥇','🥈','🥉'][i]||i+1}</div>
+      <div class="du-info"><div class="du-name">${d.n}</div><div class="du-sub">Unit: ${d.u}</div></div>
+      <div class="du-stats"><div class="du-val">${d.t} trips</div><div class="du-unit">${d.w.toFixed(0)} MT</div></div>
+    </div>`).join('');
+
+  // Unit list
+  document.getElementById('unitList').innerHTML=units.map((u,i)=>`
+    <div class="du-item">
+      <div class="du-rank ${i<3?'top':''}">${['🥇','🥈','🥉'][i]||i+1}</div>
+      <div class="du-info"><div class="du-name">Unit ${u.u}</div><div class="du-sub">${u.d.split(' ').slice(0,2).join(' ')}</div></div>
+      <div class="du-stats"><div class="du-val">${u.t} trips</div><div class="du-unit">${u.w.toFixed(0)} MT</div></div>
+    </div>`).join('');
+
+  renderTable(allRows.length?allRows:buildFakeRows(daily,routes));
+  buildCharts(daily,routes,ships,drivers,units,totalShip,sc);
+}
+
+function buildFakeRows(daily,routes){
+  return ALL_ROWS.map(r=>({
+    unit:r.u, drv:r.d,
+    dep: r.dep ? new Date(r.dep) : null,
+    orig:r.o, dest:r.dt, dist:r.km,
+    ship:r.s, wt:r.w, mn:r.mn||'—'
+  }));
+}
+
+// ══════════════════════════════════════════
+// TABLE
+// ══════════════════════════════════════════
+let _allRows=[];
+function renderTable(rows){
+  _allRows=rows;
+  if(!rows.length){
+    // Use static summary rows from DAILY
+    document.getElementById('tblCount').textContent='Showing summary — upload Excel for full detail';
+    document.getElementById('tBody').innerHTML=DAILY.map((d,i)=>
+      `<tr><td>${i+1}</td><td>${r.mn||'—'}</td><td style='color:var(--muted);font-size:.72rem'>${r.mn||'—'}</td><td>${d.d}/2026</td><td>PZU/Abo Hamad</td><td>Khartoum</td><td>—</td><td>—</td><td>WHEATRW01</td><td style="color:#00e676;font-weight:700">${d.w}</td></tr>`
+    ).join('');
+    return;
+  }
+  filterTable();
+}
+function filterTable(){
+  if(!_allRows.length)return;
+  const fo=document.getElementById('fOrig').value, fd=document.getElementById('fDest').value;
+  const fs=document.getElementById('fShip').value, fq=document.getElementById('fSearch').value.toLowerCase();
+  const filtered=_allRows.filter(r=>{
+    if(fo&&r.orig!==fo)return false;
+    if(fd&&r.dest!==fd)return false;
+    if(fs&&r.ship!==fs)return false;
+    if(fq&&![r.unit,r.drv,r.orig,r.dest,r.ship].some(v=>String(v).toLowerCase().includes(fq)))return false;
+    return true;
+  });
+  document.getElementById('tblCount').textContent=filtered.length.toLocaleString()+' records shown';
+  document.getElementById('tBody').innerHTML=filtered.slice(0,500).map((r,i)=>{
+    const sc=r.ship.includes('WHEAT')?'pg':r.ship.includes('Corn')?'pa':'pb';
+    const oc=r.orig==='PZU'?'pb':'pg';
+    const fmt2=v=>isNaN(v)?v:parseFloat(v).toFixed(2);
+    return`<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td style="color:#a5d6a7;font-weight:700">${r.unit}</td>
+      <td>${r.drv.split(' ').slice(0,3).join(' ')}</td>
+      <td style="color:var(--muted)">${r.dep?r.dep.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+r.dep.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):''}</td>
+      <td><span class="pill ${oc}">${r.orig}</span></td>
+      <td><span class="pill pb">${r.dest}</span></td>
+      <td>${r.dist||'—'}</td><td>—</td>
+      <td><span class="pill ${sc}">${r.ship}</span></td>
+      <td style="color:#00e676;font-weight:700">${fmt2(r.wt)}</td>
+    </tr>`;
+  }).join('');
+}
+['fOrig','fDest','fShip'].forEach(id=>document.getElementById(id).onchange=filterTable);
+
+// ══════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════
+const gc2='rgba(26,74,42,0.5)', tc='#4a7a57';
+function dc(id){if(charts[id]){try{charts[id].destroy()}catch(e){}delete charts[id]}}
+function ctx(id){return document.getElementById(id).getContext('2d')}
+
+function buildCharts(daily,routes,ships,drivers,units,totalShip,sc){
+  const labs=daily.map(d=>d.d);
+
+  dc('cDaily');
+  charts.cDaily=new Chart(ctx('cDaily'),{type:'bar',data:{labels:labs,datasets:[
+    {label:'Trucks',data:daily.map(d=>d.t),backgroundColor:'rgba(0,176,255,0.25)',borderColor:'#00b0ff',borderWidth:1.5,borderRadius:3,yAxisID:'y1'},
+    {label:'Volume MT',data:daily.map(d=>d.w),type:'line',borderColor:'#00e676',backgroundColor:'rgba(0,230,118,0.06)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#00e676',tension:.35,fill:true,yAxisID:'y2'}
+  ]},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#a5d6a7',font:{size:11}}}},scales:{x:{grid:{color:gc2},ticks:{color:tc,font:{size:10}}},y1:{position:'left',grid:{color:gc2},ticks:{color:'#00b0ff',font:{size:10}},title:{display:true,text:'Trucks',color:'#00b0ff'}},y2:{position:'right',grid:{display:false},ticks:{color:'#00e676',font:{size:10}},title:{display:true,text:'MT',color:'#00e676'}}}}});
+
+  dc('cRoute');
+  const rl=Object.keys(routes),rv=Object.values(routes).map(r=>r.t);
+  charts.cRoute=new Chart(ctx('cRoute'),{type:'doughnut',data:{labels:rl,datasets:[{data:rv,backgroundColor:['#00e676','#00b0ff','#ffea00','#ff6d00'],borderColor:'#0d2416',borderWidth:2}]},options:{cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:'#a5d6a7',font:{size:10},boxWidth:10,padding:10}}}}});
+
+  dc('cCargo');
+  charts.cCargo=new Chart(ctx('cCargo'),{type:'doughnut',data:{labels:Object.keys(ships),datasets:[{data:Object.values(ships),backgroundColor:sc,borderColor:'#0d2416',borderWidth:3}]},options:{cutout:'65%',plugins:{legend:{display:false}}}});
+
+  dc('cAnnual');
+  charts.cAnnual=new Chart(ctx('cAnnual'),{type:'bar',data:{labels:MONTHS,datasets:[
+    {label:'Target',data:ANNUAL_T,backgroundColor:'rgba(74,122,87,0.25)',borderColor:'#1a4a2a',borderWidth:1,borderRadius:3},
+    {label:'Actual',data:ANNUAL_A,backgroundColor:ANNUAL_A.map((v,i)=>v===0?'transparent':v>=ANNUAL_T[i]?'rgba(0,230,118,0.7)':'rgba(255,234,0,0.7)'),borderColor:ANNUAL_A.map((v,i)=>v>=ANNUAL_T[i]?'#00e676':'#ffea00'),borderWidth:1,borderRadius:3}
+  ]},options:{responsive:true,plugins:{legend:{labels:{color:'#a5d6a7',font:{size:10}}}},scales:{x:{grid:{color:gc2},ticks:{color:tc,font:{size:9}}},y:{grid:{color:gc2},ticks:{color:tc,font:{size:9},callback:v=>(v/1000).toFixed(0)+'K'}}}}});
+
+  dc('cVolTgt');
+  charts.cVolTgt=new Chart(ctx('cVolTgt'),{type:'bar',data:{labels:labs,datasets:[
+    {label:'Volume MT',data:daily.map(d=>d.w),backgroundColor:'rgba(0,230,118,0.35)',borderColor:'#00e676',borderWidth:1.5,borderRadius:4},
+    {label:'Daily Target',data:daily.map(()=>TARGETS.dailyVol),type:'line',borderColor:'#ffea00',borderDash:[5,3],borderWidth:2,pointRadius:0}
+  ]},options:{responsive:true,plugins:{legend:{labels:{color:'#a5d6a7',font:{size:11}}}},scales:{x:{grid:{color:gc2},ticks:{color:tc,font:{size:9}}},y:{grid:{color:gc2},ticks:{color:'#00e676',font:{size:10}}}}}});
+
+  dc('cKM');
+  charts.cKM=new Chart(ctx('cKM'),{type:'line',data:{labels:labs,datasets:[{label:'KM',data:daily.map(d=>d.k),borderColor:'#ff6d00',backgroundColor:'rgba(255,109,0,0.07)',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#ff6d00',tension:.35,fill:true}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc2},ticks:{color:tc,font:{size:9}}},y:{grid:{color:gc2},ticks:{color:'#ff6d00',font:{size:9},callback:v=>(v/1000).toFixed(0)+'K'}}}}});
+
+  dc('cTrpTgt');
+  charts.cTrpTgt=new Chart(ctx('cTrpTgt'),{type:'bar',data:{labels:labs,datasets:[
+    {label:'Trips',data:daily.map(d=>d.t),backgroundColor:'rgba(0,176,255,0.35)',borderColor:'#00b0ff',borderWidth:1.5,borderRadius:4},
+    {label:'Daily Target',data:daily.map(()=>Math.round(TARGETS.dailyTrips)),type:'line',borderColor:'#76ff03',borderDash:[5,3],borderWidth:2,pointRadius:0}
+  ]},options:{responsive:true,plugins:{legend:{labels:{color:'#a5d6a7',font:{size:11}}}},scales:{x:{grid:{color:gc2},ticks:{color:tc,font:{size:9}}},y:{grid:{color:gc2},ticks:{color:'#00b0ff',font:{size:10}}}}}});
+
+  dc('cCumul');
+  let cum=0;const cumData=daily.map(d=>{cum+=d.w;return Math.round(cum)});
+  const cumTarget=daily.map((_,i)=>Math.round(TARGETS.volume*(i+1)/31));
+  charts.cCumul=new Chart(ctx('cCumul'),{type:'line',data:{labels:labs,datasets:[
+    {label:'Cumulative MT',data:cumData,borderColor:'#00e676',backgroundColor:'rgba(0,230,118,0.08)',borderWidth:2.5,pointRadius:2,tension:.3,fill:true},
+    {label:'Target Pace',data:cumTarget,borderColor:'#ffea00',borderDash:[5,3],borderWidth:2,pointRadius:0}
+  ]},options:{responsive:true,plugins:{legend:{labels:{color:'#a5d6a7',font:{size:11}}}},scales:{x:{grid:{color:gc2},ticks:{color:tc,font:{size:9}}},y:{grid:{color:gc2},ticks:{color:'#00e676',font:{size:9},callback:v=>(v/1000).toFixed(0)+'K'}}}}});
+
+  dc('cDrvVol');
+  charts.cDrvVol=new Chart(ctx('cDrvVol'),{type:'bar',data:{labels:drivers.map(d=>d.n.split(' ')[0]+' '+d.n.split(' ')[1]),datasets:[{data:drivers.map(d=>d.w),backgroundColor:'rgba(0,230,118,0.5)',borderColor:'#00e676',borderWidth:1.5,borderRadius:4}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc2},ticks:{color:tc,font:{size:9}}},y:{grid:{display:false},ticks:{color:'#a5d6a7',font:{size:9}}}}}});
+
+  dc('cUnitVol');
+  charts.cUnitVol=new Chart(ctx('cUnitVol'),{type:'bar',data:{labels:units.map(u=>'Unit '+u.u),datasets:[{data:units.map(u=>u.w),backgroundColor:'rgba(0,176,255,0.5)',borderColor:'#00b0ff',borderWidth:1.5,borderRadius:4}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc2},ticks:{color:tc,font:{size:9}}},y:{grid:{display:false},ticks:{color:'#a5d6a7',font:{size:9}}}}}});
+
+  dc('cRtVol');
+  charts.cRtVol=new Chart(ctx('cRtVol'),{type:'bar',data:{labels:Object.keys(routes),datasets:[{data:Object.values(routes).map(r=>r.w),backgroundColor:['rgba(0,230,118,0.5)','rgba(0,176,255,0.5)','rgba(255,234,0,0.5)','rgba(255,109,0,0.5)'],borderColor:['#00e676','#00b0ff','#ffea00','#ff6d00'],borderWidth:1.5,borderRadius:5}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc2},ticks:{color:tc,font:{size:9},autoSkip:false,maxRotation:20}},y:{grid:{color:gc2},ticks:{color:tc,font:{size:9},callback:v=>(v/1000).toFixed(0)+'K'}}}}});
+
+  dc('cRtKm');
+  charts.cRtKm=new Chart(ctx('cRtKm'),{type:'bar',data:{labels:Object.keys(routes),datasets:[{data:Object.values(routes).map(r=>r.k),backgroundColor:'rgba(255,109,0,0.45)',borderColor:'#ff6d00',borderWidth:1.5,borderRadius:5}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gc2},ticks:{color:tc,font:{size:9},autoSkip:false,maxRotation:20}},y:{grid:{color:gc2},ticks:{color:tc,font:{size:9},callback:v=>(v/1000).toFixed(0)+'K'}}}}});
+}
+
+function updateTime(){document.getElementById('updT').textContent='Updated: '+new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .4s';setTimeout(()=>t.remove(),400)},3000)}
+</script>
+</body>
+</html>
