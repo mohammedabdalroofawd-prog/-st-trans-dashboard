@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ST Trans — Shipment Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B1D3A;--navy2:#1A3461;--navy3:#243E70;
+  --accent:#F5A623;--accent2:#E8903A;
+  --blue:#2E6FD9;--blue2:#4A8FEF;--blue-light:#EAF2FF;
+  --green:#1A9E6A;--green-light:#E3F8F0;
+  --teal:#0D8A72;--teal-light:#E0F5F0;
+  --red:#D94040;--red-light:#FDEAEA;
+  --purple:#7C3AED;--purple-light:#EDE9FE;
+  --amber:#D97706;--amber-light:#FEF3C7;
+  --bg:#F0F4FA;--surface:#FFFFFF;--surface2:#F7F9FC;
+  --text:#0B1D3A;--text2:#455A7A;--text3:#8FA3BE;
+  --border:#DDE5F0;--r:12px;--rlg:16px;
+}
+body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* TOP BAR */
+.topbar{height:60px;background:var(--navy);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:200}
+.tlogo{display:flex;align-items:center;gap:12px}
+.tlogo-box{width:38px;height:38px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.tlogo-box i{font-size:20px;color:var(--navy)}
+.tlogo-text{color:#fff;font-size:15px;font-weight:700;letter-spacing:.01em}
+.tlogo-sub{color:#7A9CC8;font-size:11px;margin-top:1px}
+.tnav{display:flex;gap:2px}
+.tnav-btn{padding:8px 18px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:transparent;color:#7A9CC8;transition:all .15s;display:flex;align-items:center;gap:6px}
+.tnav-btn.active{background:rgba(255,255,255,.15);color:#fff}
+.tnav-btn:hover:not(.active){background:rgba(255,255,255,.08);color:#ccc}
+
+/* PAGE */
+.page{max-width:1100px;margin:0 auto;padding:24px 20px}
+
+/* HERO STATS ROW */
+.hero-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+.hcard{border-radius:var(--rlg);padding:18px 16px;position:relative;overflow:hidden;cursor:default}
+.hcard-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;opacity:.75;margin-bottom:6px}
+.hcard-val{font-size:32px;font-weight:800;line-height:1}
+.hcard-sub{font-size:12px;margin-top:6px;opacity:.7}
+.hcard-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:44px;opacity:.15}
+.hcard-blue{background:linear-gradient(135deg,#1A3F8F,#2E6FD9);color:#fff}
+.hcard-green{background:linear-gradient(135deg,#0D6E4A,#1A9E6A);color:#fff}
+.hcard-teal{background:linear-gradient(135deg,#085C4D,#0D8A72);color:#fff}
+.hcard-red{background:linear-gradient(135deg,#9B1F1F,#D94040);color:#fff}
+.hcard-amber{background:linear-gradient(135deg,#92510A,#D97706);color:#fff}
+
+/* CHARTS ROW */
+.charts-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:18px 20px}
+.chart-card.wide{grid-column:span 2}
+.chart-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.chart-title i{font-size:16px;color:var(--blue)}
+.chart-wrap{position:relative;height:180px}
+
+/* ROUTE TABLE */
+.route-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:18px 20px;margin-bottom:24px}
+.rtable{width:100%;border-collapse:collapse;font-size:13px}
+.rtable th{text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;padding:0 12px 10px 0;border-bottom:1px solid var(--border)}
+.rtable td{padding:10px 12px 10px 0;border-bottom:1px solid var(--border);color:var(--text2)}
+.rtable tr:last-child td{border-bottom:none}
+.rtable td:first-child{font-weight:600;color:var(--text)}
+.rbar-wrap{background:var(--bg);border-radius:20px;height:7px;width:120px;overflow:hidden}
+.rbar{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--blue),var(--blue2))}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.toolbar input,.toolbar select{font-size:13px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);color:var(--text);outline:none}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--blue)}
+.toolbar input{flex:1;min-width:160px}
+.toolbar select{min-width:130px}
+
+/* SECTION HDR */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-hdr h2{font-size:14px;font-weight:600;color:var(--text2)}
+.count-pill{background:var(--blue-light);color:var(--blue);font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px}
+
+/* CARDS */
+.truck-grid{display:flex;flex-direction:column;gap:8px}
+.truck-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:14px 18px;display:grid;grid-template-columns:46px 1fr auto;gap:14px;align-items:center;transition:box-shadow .15s,border-color .15s}
+.truck-card:hover{box-shadow:0 3px 16px rgba(11,29,58,.08);border-color:#C5D4E8}
+.cicon{width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.truck-id{font-size:15px;font-weight:700;color:var(--text)}
+.truck-route{font-size:12px;color:var(--text2);margin:3px 0}
+.truck-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:5px}
+.mi{font-size:12px;color:var(--text3)}
+.mi b{color:var(--text2);font-weight:500}
+.badge{font-size:11px;font-weight:700;padding:3px 11px;border-radius:20px;white-space:nowrap;letter-spacing:.02em}
+.cright{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;border-radius:6px;transition:color .15s}
+.del-btn:hover{color:var(--red)}
+.empty{text-align:center;padding:48px;color:var(--text3)}
+.empty i{font-size:48px;display:block;margin-bottom:12px;opacity:.3}
+
+/* STATUS COLORS */
+.s-loading{background:#EAF2FF;color:#1A4FAA}
+.s-transit{background:var(--green-light);color:#0A5E3F}
+.s-delivered{background:var(--teal-light);color:#085C4D}
+.s-delayed{background:var(--red-light);color:#9B1F1F}
+.s-waiting{background:var(--amber-light);color:#7C4508}
+.ic-loading{background:#EAF2FF}.ic-loading i{color:#2E6FD9}
+.ic-transit{background:var(--green-light)}.ic-transit i{color:#1A9E6A}
+.ic-delivered{background:var(--teal-light)}.ic-delivered i{color:#0D8A72}
+.ic-delayed{background:var(--red-light)}.ic-delayed i{color:#D94040}
+.ic-waiting{background:var(--amber-light)}.ic-waiting i{color:#D97706}
+
+/* FORM */
+.form-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:24px}
+.form-intro{font-size:13px;color:var(--text2);margin-bottom:20px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fg{display:flex;flex-direction:column;gap:6px}
+.fg.full{grid-column:1/-1}
+.fg label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.fg input,.fg select,.fg textarea{font-size:13px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r);background:var(--surface2);color:var(--text);outline:none;font-family:inherit;width:100%;transition:border-color .15s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--blue);background:#fff}
+.save-btn{margin-top:12px;background:linear-gradient(135deg,var(--navy2),var(--blue));color:#fff;border:none;padding:12px 28px;border-radius:var(--r);font-size:14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:opacity .15s}
+.save-btn:hover{opacity:.9}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:12px 20px;border-radius:var(--r);font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:9999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+#toast.show{opacity:1}
+
+/* MOBILE */
+.mobtabs{display:none;gap:4px;margin-bottom:16px}
+.mobtab{flex:1;padding:10px;text-align:center;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:none;background:var(--surface);color:var(--text2);border:1px solid var(--border)}
+.mobtab.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+@media(max-width:900px){.charts-row{grid-template-columns:1fr 1fr}.chart-card.wide{grid-column:1/-1}}
+@media(max-width:640px){
+  .hero-row{grid-template-columns:repeat(2,1fr)}
+  .hero-row .hcard:last-child{grid-column:1/-1}
+  .charts-row{grid-template-columns:1fr}
+  .chart-card.wide{grid-column:1}
+  .form-grid{grid-template-columns:1fr}.fg.full{grid-column:1}
+  .truck-card{grid-template-columns:40px 1fr}
+  .cright{grid-column:1/-1;flex-direction:row;justify-content:space-between;align-items:center}
+  .tnav{display:none}.mobtabs{display:flex}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tlogo">
+    <div class="tlogo-box"><i class="ti ti-truck"></i></div>
+    <div>
+      <div class="tlogo-text">ST Trans</div>
+      <div class="tlogo-sub">Shipment Tracker — SAYGA June 2026</div>
+    </div>
+  </div>
+  <div class="tnav">
+    <button class="tnav-btn active" onclick="switchTab('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+    <button class="tnav-btn" onclick="switchTab('tracker')"><i class="ti ti-list"></i> Shipments</button>
+    <button class="tnav-btn" onclick="switchTab('upload')"><i class="ti ti-plus"></i> Add Entry</button>
+  </div>
+</div>
+
+<div class="page">
+  <div class="mobtabs">
+    <button class="mobtab active" onclick="switchTab('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+    <button class="mobtab" onclick="switchTab('tracker')"><i class="ti ti-list"></i> Shipments</button>
+    <button class="mobtab" onclick="switchTab('upload')"><i class="ti ti-plus"></i> Add</button>
+  </div>
+
+  <!-- DASHBOARD TAB -->
+  <div id="view-dashboard">
+    <div class="hero-row" id="hero-row"></div>
+    <div class="charts-row">
+      <div class="chart-card wide">
+        <div class="chart-title"><i class="ti ti-chart-bar"></i> Daily Trips by Date</div>
+        <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><i class="ti ti-chart-donut"></i> Status Breakdown</div>
+        <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
+      </div>
+    </div>
+    <div class="route-table-wrap">
+      <div class="chart-title" style="margin-bottom:16px"><i class="ti ti-map-route"></i> Route Performance</div>
+      <table class="rtable" id="route-table">
+        <thead><tr><th>Route</th><th>Trips</th><th>Total Weight (MT)</th><th>Avg Weight</th><th>Share</th></tr></thead>
+        <tbody id="route-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SHIPMENTS TAB -->
+  <div id="view-tracker" style="display:none">
+    <div class="toolbar">
+      <input type="text" id="search-input" placeholder="Search truck ID, driver, manifest..." oninput="renderCards()">
+      <select id="filter-status" onchange="renderCards()">
+        <option value="">All statuses</option>
+        <option>Loading</option><option>In Transit</option>
+        <option>Delivered</option><option>Delayed</option><option>Waiting</option>
+      </select>
+      <select id="filter-route" onchange="renderCards()">
+        <option value="">All routes</option>
+      </select>
+      <select id="filter-date" onchange="renderCards()">
+        <option value="">All dates</option>
+      </select>
+    </div>
+    <div class="sec-hdr">
+      <h2>Shipment Records</h2>
+      <span class="count-pill" id="count-pill">0</span>
+    </div>
+    <div class="truck-grid" id="truck-grid"></div>
+  </div>
+
+  <!-- ADD ENTRY TAB -->
+  <div id="view-upload" style="display:none">
+    <div class="form-wrap">
+      <p class="form-intro">Add or update a truck shipment. Fields marked <b>*</b> are required.</p>
+      <div class="form-grid">
+        <div class="fg"><label>Truck ID *</label><input id="f-id" placeholder="e.g. 9044"></div>
+        <div class="fg"><label>Driver Name *</label><input id="f-driver" placeholder="Full name"></div>
+        <div class="fg"><label>Origin *</label><input id="f-origin" placeholder="e.g. Port Sudan" value="PZU"></div>
+        <div class="fg"><label>Destination *</label><input id="f-dest" placeholder="e.g. Khartoum"></div>
+        <div class="fg"><label>Cargo Type</label><input id="f-cargo" placeholder="e.g. WHEATRW01" value="WHEATRW01"></div>
+        <div class="fg"><label>Weight (MT)</label><input id="f-weight" type="number" placeholder="e.g. 90.5"></div>
+        <div class="fg"><label>Client</label><input id="f-client" placeholder="e.g. SAYGA" value="SAYGA"></div>
+        <div class="fg"><label>Status *</label>
+          <select id="f-status">
+            <option>Loading</option><option>In Transit</option>
+            <option selected>Delivered</option><option>Delayed</option><option>Waiting</option>
+          </select>
+        </div>
+        <div class="fg"><label>Departure Date</label><input id="f-dep" type="date"></div>
+        <div class="fg"><label>Manifest No</label><input id="f-manifest" placeholder="e.g. 010254"></div>
+        <div class="fg full"><label>Notes</label><textarea id="f-notes" rows="2" placeholder="Any remarks..."></textarea></div>
+      </div>
+      <button class="save-btn" onclick="submitEntry()"><i class="ti ti-device-floppy"></i> Save Shipment</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><i class="ti ti-check"></i> <span id="toast-msg"></span></div>
+
+<script>
+const STORE = 'st_june26';
+const SEED = [{"id": "3114", "driver": "Anwar Gasim mohamed abdallah", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.14, "dep": "2026-06-01", "eta": "", "manifest": "010254", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 1000}, {"id": "12989", "driver": "Naser Mohamed Khalil Osman", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.14, "dep": "2026-06-01", "eta": "", "manifest": "010236", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 2000}, {"id": "12730", "driver": "Osman Hussein Mohamed Abakar", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.08, "dep": "2026-06-01", "eta": "", "manifest": "010235", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 3000}, {"id": "12735", "driver": "Fathi Bushra Bakheat Balal", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.16, "dep": "2026-06-01", "eta": "", "manifest": "010255", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 4000}, {"id": "14693", "driver": "Mahajoub Abnaoof Mohamed Elgizoli", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.14, "dep": "2026-06-01", "eta": "", "manifest": "010256", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 5000}, {"id": "12994", "driver": "Elsadig Mohamed Yousif Ibrahim", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.22, "dep": "2026-06-01", "eta": "", "manifest": "010257", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 6000}, {"id": "14685", "driver": "Yahia Hassan Abuanga Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.94, "dep": "2026-06-01", "eta": "", "manifest": "010275", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 7000}, {"id": "12480", "driver": "Abdalla Alamin Adam Ahmed", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.06, "dep": "2026-06-01", "eta": "", "manifest": "010259", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 8000}, {"id": "14677", "driver": "Awad Suliman Abdelrahman Alsheikh", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.3, "dep": "2026-06-01", "eta": "", "manifest": "010262", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 9000}, {"id": "301", "driver": "Saifeldin Awad Elhassan Hussein", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.74, "dep": "2026-06-01", "eta": "", "manifest": "010210", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 10000}, {"id": "9044", "driver": "Haytham Ahmed Mohamed Arbab", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.56, "dep": "2026-06-01", "eta": "", "manifest": "010260", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 11000}, {"id": "12729", "driver": "Habeb Mohamed Ahmed Hamad", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.62, "dep": "2026-06-01", "eta": "", "manifest": "010211", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 12000}, {"id": "11579", "driver": "Issa Ahmed Ibrahim Adam", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.12, "dep": "2026-06-01", "eta": "", "manifest": "010261", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 13000}, {"id": "14682", "driver": "Mohamed Hassan Ahmed Gaknoon", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.78, "dep": "2026-06-01", "eta": "", "manifest": "010212", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 14000}, {"id": "14676", "driver": "Adiso Nigousi Biati Tigari", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.84, "dep": "2026-06-01", "eta": "", "manifest": "010267", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 15000}, {"id": "14694", "driver": "Ibrahim Adam Idress Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.16, "dep": "2026-06-01", "eta": "", "manifest": "010213", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 16000}, {"id": "9302", "driver": "Yasir Abas Mohamed Ali Omer", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.82, "dep": "2026-06-01", "eta": "", "manifest": "010217", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 17000}, {"id": "3121", "driver": "Badr Eldin Ibrahim Hassan Adam", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.18, "dep": "2026-06-01", "eta": "", "manifest": "010215", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 18000}, {"id": "13076", "driver": "Ayman Abdelkareem Hassan Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.18, "dep": "2026-06-01", "eta": "", "manifest": "010214", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 19000}, {"id": "12208", "driver": "Sami Hussain Al-Tarifi Altoum", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.0, "dep": "2026-06-01", "eta": "", "manifest": "010218", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 20000}, {"id": "12997", "driver": "Seliman Hassan Yagoub Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.78, "dep": "2026-06-01", "eta": "", "manifest": "010216", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 21000}, {"id": "12203", "driver": "Ashraf Mohamed Issa Osman", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.9, "dep": "2026-06-01", "eta": "", "manifest": "010219", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 22000}, {"id": "11580", "driver": "Musa Mohamed Idris Omer", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.0, "dep": "2026-06-01", "eta": "", "manifest": "010264", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 23000}, {"id": "12207", "driver": "Mojahid Mahil Eldaw Attash", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.86, "dep": "2026-06-01", "eta": "", "manifest": "010266", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 24000}, {"id": "1354", "driver": "Amer Ahmed Numan Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.9, "dep": "2026-06-01", "eta": "", "manifest": "010273", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 25000}, {"id": "12689", "driver": "Eisa Mohamed Adam Sheiga", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.14, "dep": "2026-06-01", "eta": "", "manifest": "010263", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 26000}, {"id": "9303", "driver": "Anas Khirsan MohamedAhmed Ali", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.32, "dep": "2026-06-01", "eta": "", "manifest": "010274", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 27000}, {"id": "12726", "driver": "Samer Zainelabiden Hassan Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.8, "dep": "2026-06-01", "eta": "", "manifest": "010269", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 28000}, {"id": "12690", "driver": "Khalid Hassan Omer Elbadawi", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.84, "dep": "2026-06-01", "eta": "", "manifest": "010221", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 29000}, {"id": "8336", "driver": "Eldawi Mohamed Eldawi Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.12, "dep": "2026-06-01", "eta": "", "manifest": "010265", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 30000}, {"id": "3115", "driver": "Marzog Ali Hago Elatmani", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.58, "dep": "2026-06-02", "eta": "", "manifest": "010268", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 31000}, {"id": "14690", "driver": "Abdelgadir Mahmoud Elbakri Elshikh", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.96, "dep": "2026-06-02", "eta": "", "manifest": "010270", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 32000}, {"id": "9304", "driver": "Montaser Gariballah alsayed", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.96, "dep": "2026-06-02", "eta": "", "manifest": "010258", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 33000}, {"id": "12211", "driver": "Khalid Hamad Babiker Hamad", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.74, "dep": "2026-06-02", "eta": "", "manifest": "010120", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 34000}, {"id": "14688", "driver": "Oshaik Mohamed Ahmed Abasher", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.16, "dep": "2026-06-02", "eta": "", "manifest": "010248", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 35000}, {"id": "9305", "driver": "Malik Ahmed Yousif Rahama", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.1, "dep": "2026-06-02", "eta": "", "manifest": "010272", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 36000}, {"id": "8288", "driver": "Khalid Bashir Mursal Hassan", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.86, "dep": "2026-06-02", "eta": "", "manifest": "010245", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 37000}, {"id": "12993", "driver": "Ayman Osman Salih Osman", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.16, "dep": "2026-06-02", "eta": "", "manifest": "010271", "status": "Delivered", "notes": "Sheet: 6.1.2026", "ts": 38000}, {"id": "1357", "driver": "Ismael Fathi Ismael", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.98, "dep": "2026-06-02", "eta": "", "manifest": "010250", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 39000}, {"id": "9308", "driver": "Mohamed Adam Osman Braima", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.4, "dep": "2026-06-02", "eta": "", "manifest": "010249", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 40000}, {"id": "1366", "driver": "Adil Adam Musa Noureldin", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.04, "dep": "2026-06-02", "eta": "", "manifest": "010286", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 41000}, {"id": "14695", "driver": "Isam Eldean Mahmoued Makki", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.34, "dep": "2026-06-02", "eta": "", "manifest": "010289", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 42000}, {"id": "14686", "driver": "Sharif Idris Omer Abdalla", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.56, "dep": "2026-06-02", "eta": "", "manifest": "010114", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 43000}, {"id": "12734", "driver": "Abdalla Ahmed Ibrahim Daief", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.86, "dep": "2026-06-02", "eta": "", "manifest": "010287", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 44000}, {"id": "12733", "driver": "Abdelrahman Ali Abdelrahman Yousif", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.1, "dep": "2026-06-02", "eta": "", "manifest": "010276", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 45000}, {"id": "9075", "driver": "Abuelbashr Abdelwahab Eid Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.24, "dep": "2026-06-02", "eta": "", "manifest": "010277", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 46000}, {"id": "12205", "driver": "Mortada Abakar Ibrahim Mohamed", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.74, "dep": "2026-06-02", "eta": "", "manifest": "010288", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 47000}, {"id": "11578", "driver": "Samoal Mohamed Saleem Ahmed", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.72, "dep": "2026-06-02", "eta": "", "manifest": "010295", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 48000}, {"id": "12995", "driver": "Mohamed Mosa Onoer Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.9, "dep": "2026-06-03", "eta": "", "manifest": "010247", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 49000}, {"id": "3122", "driver": "Adam Younis Abdallah Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.74, "dep": "2026-06-03", "eta": "", "manifest": "010279", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 50000}, {"id": "12210", "driver": "Mohamed Ibrahim Abdalla Alhaj", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.48, "dep": "2026-06-03", "eta": "", "manifest": "010278", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 51000}, {"id": "12992", "driver": "Mohyeldin Ali Mahadi Khatir", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.12, "dep": "2026-06-03", "eta": "", "manifest": "010280", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 52000}, {"id": "6795", "driver": "Abdulmoneim Fadlalmawla Mohammad Hamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.8, "dep": "2026-06-03", "eta": "", "manifest": "010283", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 53000}, {"id": "9072", "driver": "Alfarazdaq Abouad Gaselsaid Gobartallah", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.18, "dep": "2026-06-03", "eta": "", "manifest": "010282", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 54000}, {"id": "14681", "driver": "Elsadig Mohamed Arbab Suliman", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.14, "dep": "2026-06-03", "eta": "", "manifest": "010285", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 55000}, {"id": "3112", "driver": "Elsheikhidris  Basheer Alfaki Basheer", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.98, "dep": "2026-06-03", "eta": "", "manifest": "010284", "status": "Delivered", "notes": "Sheet: 6.2.2026", "ts": 56000}, {"id": "14692", "driver": "Mohamed Alnadeef Matar Obaid", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.32, "dep": "2026-06-03", "eta": "", "manifest": "010208", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 57000}, {"id": "12988", "driver": "Atta Almanan Mahmoud Hamid Baghdad", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.08, "dep": "2026-06-03", "eta": "", "manifest": "010293", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 58000}, {"id": "1364", "driver": "Ashraf Yagoup Mohamed Abdallah", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.66, "dep": "2026-06-03", "eta": "", "manifest": "010292", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 59000}, {"id": "9042", "driver": "Tarig Mohamed Bahsar Idrees", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.74, "dep": "2026-06-03", "eta": "", "manifest": "010291", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 60000}, {"id": "1645", "driver": "Huzaifa Mohamed Omer Ahmed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.04, "dep": "2026-06-03", "eta": "", "manifest": "010294", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 61000}, {"id": "6794", "driver": "Muner Mohamed Obied Hassan", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.66, "dep": "2026-06-03", "eta": "", "manifest": "010305", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 62000}, {"id": "8282", "driver": "Motaz Abdo Ismaeil Elhag", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.18, "dep": "2026-06-03", "eta": "", "manifest": "010301", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 63000}, {"id": "1646", "driver": "Amar Adil Mohamed Ali Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.12, "dep": "2026-06-03", "eta": "", "manifest": "010281", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 64000}, {"id": "9073", "driver": "Ahmed Obaid Mohmed Ali", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.26, "dep": "2026-06-03", "eta": "", "manifest": "010297", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 65000}, {"id": "3117", "driver": "Elzibair Abdallah Elzibair MohamedAhmed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.2, "dep": "2026-06-03", "eta": "", "manifest": "010220", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 66000}, {"id": "9316", "driver": "Alsadig Suliman Abdalla Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.22, "dep": "2026-06-03", "eta": "", "manifest": "010309", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 67000}, {"id": "9071", "driver": "Sanad Saif Mohamed Abdalla", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.22, "dep": "2026-06-03", "eta": "", "manifest": "010303", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 68000}, {"id": "9313", "driver": "Hassan Adam Abdalrasoul Abdalmola", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.36, "dep": "2026-06-03", "eta": "", "manifest": "010295", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 69000}, {"id": "9312", "driver": "Ibrahim Hassan Nasr Saleh", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.14, "dep": "2026-06-04", "eta": "", "manifest": "010296", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 70000}, {"id": "12732", "driver": "Shawarga Mabrhto Woldgrash", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.2, "dep": "2026-06-04", "eta": "", "manifest": "010298", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 71000}, {"id": "12209", "driver": "Sufyan Abdelgadir Albagir Alfaki", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.14, "dep": "2026-06-04", "eta": "", "manifest": "010308", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 72000}, {"id": "12691", "driver": "Mohammed Abdelgadir Abakr Omer", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.14, "dep": "2026-06-04", "eta": "", "manifest": "010306", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 73000}, {"id": "8285", "driver": "Abbas Babiker Alhaj Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.22, "dep": "2026-06-04", "eta": "", "manifest": "010312", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 74000}, {"id": "9315", "driver": "Bakheit Elfadil Bakheit Mukhtar", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 91.08, "dep": "2026-06-04", "eta": "", "manifest": "010300", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 75000}, {"id": "3113", "driver": "Tarig Mahjoub Ali Abdelgader", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.08, "dep": "2026-06-04", "eta": "", "manifest": "010299", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 76000}, {"id": "9043", "driver": "Mohamed Basher Alyas Abdelmajeed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.66, "dep": "2026-06-04", "eta": "", "manifest": "010307", "status": "Delivered", "notes": "Sheet: 6.3.2026", "ts": 77000}, {"id": "12989", "driver": "Driver (see sheet)", "origin": "Abo Hamad", "dest": "Khartoum", "client": "SAYGA", "cargo": "Corn", "weight": 87.66, "dep": "2026-06-03", "eta": "", "manifest": "Abo Hamad Route", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 78000}, {"id": "14693", "driver": "Driver (see sheet)", "origin": "Abo Hamad", "dest": "Khartoum", "client": "SAYGA", "cargo": "Corn", "weight": 87.48, "dep": "2026-06-04", "eta": "", "manifest": "Abo Hamad Route", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 79000}, {"id": "14689", "driver": "Mohamed Saad Abdelkareem Jabir", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.02, "dep": "2026-06-04", "eta": "", "manifest": "010302", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 80000}, {"id": "14687", "driver": "Saif Elyazal Rabieh Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.06, "dep": "2026-06-04", "eta": "", "manifest": "010311", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 81000}, {"id": "12728", "driver": "Noureldean Ahmed Alhamem Mohamed", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.12, "dep": "2026-06-04", "eta": "", "manifest": "010304", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 82000}, {"id": "9041", "driver": "Aladdin Adam Yahya Mohammed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.16, "dep": "2026-06-04", "eta": "", "manifest": "010310", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 83000}, {"id": "9044", "driver": "Haytham Ahmed Mohamed Arbab", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.04, "dep": "2026-06-04", "eta": "", "manifest": "010317", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 84000}, {"id": "12206", "driver": "Saleem Mohamed Saleem Ahmed", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.1, "dep": "2026-06-04", "eta": "", "manifest": "010328", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 85000}, {"id": "14677", "driver": "Awad Suliman Abdelrahman Alsheikh", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.06, "dep": "2026-06-04", "eta": "", "manifest": "010319", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 86000}, {"id": "12994", "driver": "Elsadig Mohamed Yousif Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.94, "dep": "2026-06-04", "eta": "", "manifest": "010345", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 87000}, {"id": "12730", "driver": "Hami Elshiekh Ahmed Ali", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.22, "dep": "2026-06-04", "eta": "", "manifest": "010315", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 88000}, {"id": "11579", "driver": "Issa Ahmed Ibrahim Adam", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.18, "dep": "2026-06-04", "eta": "", "manifest": "010320", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 89000}, {"id": "8288", "driver": "Khalid Bashir Mursal Hassan", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.14, "dep": "2026-06-04", "eta": "", "manifest": "010330", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 90000}, {"id": "9306", "driver": "Driver (see sheet)", "origin": "Abo Hamad", "dest": "Khartoum", "client": "SAYGA", "cargo": "Corn", "weight": 85.96, "dep": "2026-06-04", "eta": "", "manifest": "Abo Hamad Route", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 91000}, {"id": "12877", "driver": "Hassan Aldaw Ibrahim Abdelmohsin", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.18, "dep": "2026-06-04", "eta": "", "manifest": "010346", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 92000}, {"id": "3120", "driver": "Bakri Hassan Akasha Khider", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.2, "dep": "2026-06-04", "eta": "", "manifest": "010316", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 93000}, {"id": "12735", "driver": "Fathi Bushra Bakheat Balal", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.2, "dep": "2026-06-04", "eta": "", "manifest": "010327", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 94000}, {"id": "9314", "driver": "Idris Mohamed Mahmoud Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.96, "dep": "2026-06-04", "eta": "", "manifest": "010333", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 95000}, {"id": "14680", "driver": "Khalid Hassan Omer Elbadawi", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.18, "dep": "2026-06-04", "eta": "", "manifest": "010336", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 96000}, {"id": "9309", "driver": "Mujahid Elagib Mohamed Osman", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.44, "dep": "2026-06-04", "eta": "", "manifest": "010324", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 97000}, {"id": "9304", "driver": "Mountsir Gariballa Elsaid Adam", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.16, "dep": "2026-06-05", "eta": "", "manifest": "010337", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 98000}, {"id": "12734", "driver": "Abdalla Ahmed Ibrahim Daief", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.18, "dep": "2026-06-05", "eta": "", "manifest": "010287", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 99000}, {"id": "1366", "driver": "Adil Adam Musa Noureldin", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.2, "dep": "2026-06-05", "eta": "", "manifest": "010286", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 100000}, {"id": "9074", "driver": "Mobarak Omer Mohamed Omer", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.02, "dep": "2026-06-05", "eta": "", "manifest": "010350", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 101000}, {"id": "14676", "driver": "Adiso Nigousi Biati Tigari", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.14, "dep": "2026-06-05", "eta": "", "manifest": "010339", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 102000}, {"id": "14695", "driver": "Isam Eldean Mahmoued Makki", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.96, "dep": "2026-06-05", "eta": "", "manifest": "010289", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 103000}, {"id": "11578", "driver": "Samoal Mohamed Saleem Ahmed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.0, "dep": "2026-06-05", "eta": "", "manifest": "010335", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 104000}, {"id": "12203", "driver": "Ashraf Mohamed Issa Osman", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.16, "dep": "2026-06-05", "eta": "", "manifest": "010343", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 105000}, {"id": "9302", "driver": "Yasir Abas Mohamed Ali Omer", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.4, "dep": "2026-06-05", "eta": "", "manifest": "010329", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 106000}, {"id": "14682", "driver": "Mohamed Hassan Ahmed Gaknoon", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.98, "dep": "2026-06-05", "eta": "", "manifest": "010334", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 107000}, {"id": "3114", "driver": "Anwar Gasim mohamed abdallah", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.1, "dep": "2026-06-05", "eta": "", "manifest": "010340", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 108000}, {"id": "14694", "driver": "Ibrahim Adam Idress Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.0, "dep": "2026-06-05", "eta": "", "manifest": "010332", "status": "Delivered", "notes": "Sheet: 6.5.2026", "ts": 109000}, {"id": "13076", "driver": "Ayman Abdelkareem Hassan Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.12, "dep": "2026-06-06", "eta": "", "manifest": "010331", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 110000}, {"id": "12880", "driver": "Awad Eysa Idres Idres", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.26, "dep": "2026-06-06", "eta": "", "manifest": "010318", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 111000}, {"id": "14679", "driver": "Idres Haroon Yousif Idres", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.1, "dep": "2026-06-06", "eta": "", "manifest": "010246", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 112000}, {"id": "3121", "driver": "Badr Eldin Ibrahim Hassan Adam", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.08, "dep": "2026-06-06", "eta": "", "manifest": "010344", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 113000}, {"id": "12689", "driver": "Eisa Mohamed Adam Sheiga", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.22, "dep": "2026-06-06", "eta": "", "manifest": "010373", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 114000}, {"id": "6794", "driver": "Moneer Mohamed Ebaid Hassan", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.64, "dep": "2026-06-06", "eta": "", "manifest": "010351", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 115000}, {"id": "14685", "driver": "Yahia Hassan Abuanga Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.18, "dep": "2026-06-06", "eta": "", "manifest": "010342", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 116000}, {"id": "8282", "driver": "Motaz Abdo Ismaeil Elhag", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.84, "dep": "2026-06-06", "eta": "", "manifest": "010352", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 117000}, {"id": "12211", "driver": "Khalid Hamad Babiker Hamad", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.16, "dep": "2026-06-06", "eta": "", "manifest": "010357", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 118000}, {"id": "12690", "driver": "Khalid Hassan Omer Elbadawi", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.04, "dep": "2026-06-06", "eta": "", "manifest": "010358", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 119000}, {"id": "9042", "driver": "Tarig Mohamed Bahsar Idrees", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.5, "dep": "2026-06-06", "eta": "", "manifest": "010374", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 120000}, {"id": "12691", "driver": "Mohammed Abdelgadir Abakr Omer", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.68, "dep": "2026-06-06", "eta": "", "manifest": "010376", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 121000}, {"id": "9071", "driver": "Sanad Saif Mohamed Abdalla", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.02, "dep": "2026-06-06", "eta": "", "manifest": "010375", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 122000}, {"id": "6796", "driver": "Hisham Eldin Mohamed Musa Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 80.42, "dep": "2026-06-06", "eta": "", "manifest": "010341", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 123000}, {"id": "12729", "driver": "Habeb Mohamed Ahmed Hamad", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.02, "dep": "2026-06-07", "eta": "", "manifest": "010359", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 124000}, {"id": "11580", "driver": "Musa Mohamed Idris Omer", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.04, "dep": "2026-06-07", "eta": "", "manifest": "010355", "status": "Delivered", "notes": "Sheet: 6.6.2026", "ts": 125000}, {"id": "9305", "driver": "Malik Ahamed Yoasif Rahma", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.14, "dep": "2026-06-07", "eta": "", "manifest": "010354", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 126000}, {"id": "12480", "driver": "Abdalla Alamin Adam Ahmed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.26, "dep": "2026-06-07", "eta": "", "manifest": "010314", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 127000}, {"id": "8294", "driver": "Ammar abdelmajeed mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.98, "dep": "2026-06-07", "eta": "", "manifest": "010387", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 128000}, {"id": "9303", "driver": "Anas Khirsan MohamedAhmed Ali", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.92, "dep": "2026-06-07", "eta": "", "manifest": "010389", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 129000}, {"id": "3115", "driver": "Marzog Ali Hago Elatmani", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.0, "dep": "2026-06-07", "eta": "", "manifest": "010381", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 130000}, {"id": "12205", "driver": "Mortada Abakar Ibrahim Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.04, "dep": "2026-06-07", "eta": "", "manifest": "010370", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 131000}, {"id": "9310", "driver": "Talal fikri mohamed Aboubakr", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.04, "dep": "2026-06-07", "eta": "", "manifest": "010353", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 132000}, {"id": "12993", "driver": "Elfatih GismELseed Jubaralla Abdalla", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 87.84, "dep": "2026-06-07", "eta": "", "manifest": "010360", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 133000}, {"id": "301", "driver": "Saifeldin Awad Elhassan Hussein", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.46, "dep": "2026-06-07", "eta": "", "manifest": "010367", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 134000}, {"id": "3119", "driver": "Abdalazim alnour asmaeil Hassan", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.96, "dep": "2026-06-07", "eta": "", "manifest": "010371", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 135000}, {"id": "8288", "driver": "Khalid Bashir Mursal Hassan", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.82, "dep": "2026-06-07", "eta": "", "manifest": "010395", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 136000}, {"id": "12206", "driver": "Saleem Mohamed Saleem Ahmed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.7, "dep": "2026-06-07", "eta": "", "manifest": "010390", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 137000}, {"id": "12728", "driver": "Noureldean Ahmed Alhamem Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.38, "dep": "2026-06-07", "eta": "", "manifest": "010364", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 138000}, {"id": "9308", "driver": "Mohamed Adam Osman Braima", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.02, "dep": "2026-06-07", "eta": "", "manifest": "010404", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 139000}, {"id": "14692", "driver": "Mohamed Alnadeef Matar Obaid", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.64, "dep": "2026-06-07", "eta": "", "manifest": "010377", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 140000}, {"id": "12995", "driver": "Mohamed Mosa Onoer Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.16, "dep": "2026-06-07", "eta": "", "manifest": "010380", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 141000}, {"id": "12997", "driver": "Seliman Hassan Yagoub Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.5, "dep": "2026-06-07", "eta": "", "manifest": "010361", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 142000}, {"id": "14688", "driver": "Oshaik Mohamed Ahmed Abasher", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.2, "dep": "2026-06-07", "eta": "", "manifest": "010368", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 143000}, {"id": "12726", "driver": "Samer Zainelabiden Hassan Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.6, "dep": "2026-06-07", "eta": "", "manifest": "010403", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 144000}, {"id": "12992", "driver": "Mohyeldin Ali Mahadi Khatir", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.12, "dep": "2026-06-07", "eta": "", "manifest": "010379", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 145000}, {"id": "12989", "driver": "Naser Mohamed Khalil Osman", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.2, "dep": "2026-06-08", "eta": "", "manifest": "010397", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 146000}, {"id": "12735", "driver": "Fathi Bushra Bakheat Balal", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.18, "dep": "2026-06-08", "eta": "", "manifest": "010396", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 147000}, {"id": "3112", "driver": "Elsheikhidris  Basheer Alfaki Basheer", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.94, "dep": "2026-06-08", "eta": "", "manifest": "010382", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 148000}, {"id": "14689", "driver": "Mohamed Saad Abdelkareem Jabir", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.9, "dep": "2026-06-08", "eta": "", "manifest": "010362", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 149000}, {"id": "12207", "driver": "Mojahid Mahil Eldaw Attash", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.12, "dep": "2026-06-08", "eta": "", "manifest": "010356", "status": "Delivered", "notes": "Sheet: 6.7.2026", "ts": 150000}, {"id": "9073", "driver": "Ahmed Obaid Mohmed Ali", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.16, "dep": "2026-06-08", "eta": "", "manifest": "010392", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 151000}, {"id": "6793", "driver": "Alrih Abdelazim Mousa abdelgadir", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.44, "dep": "2026-06-08", "eta": "", "manifest": "010378", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 152000}, {"id": "9041", "driver": "Aladdin Adam Yahya Mohammed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.94, "dep": "2026-06-08", "eta": "", "manifest": "010401", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 153000}, {"id": "12210", "driver": "Mohamed Ibrahim Abdalla Alhaj", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.2, "dep": "2026-06-08", "eta": "", "manifest": "010384", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 154000}, {"id": "9072", "driver": "Alfarazdaq Abouad Gaselsaid Gobartallah", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.36, "dep": "2026-06-08", "eta": "", "manifest": "010398", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 155000}, {"id": "3122", "driver": "Adam Younis Abdallah Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.06, "dep": "2026-06-08", "eta": "", "manifest": "010419", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 156000}, {"id": "12994", "driver": "Elsadig Mohamed Yousif Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.04, "dep": "2026-06-08", "eta": "", "manifest": "010410", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 157000}, {"id": "14681", "driver": "Ali Ahmed Ismael Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.06, "dep": "2026-06-08", "eta": "", "manifest": "010394", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 158000}, {"id": "300", "driver": "Mohamed Yousif ibrahim mohamoud", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.1, "dep": "2026-06-09", "eta": "", "manifest": "010363", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 159000}, {"id": "12208", "driver": "Sami Hussain Al-Tarifi Altoum", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.32, "dep": "2026-06-09", "eta": "", "manifest": "010366", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 160000}, {"id": "1364", "driver": "Ashraf Yagoub Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.02, "dep": "2026-06-09", "eta": "", "manifest": "010402", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 161000}, {"id": "9313", "driver": "Hassan Adam Abdalrasool", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.24, "dep": "2026-06-09", "eta": "", "manifest": "010383", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 162000}, {"id": "6795", "driver": "Abdulmoneim Fadlalmawla Mohammad Hamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.02, "dep": "2026-06-09", "eta": "", "manifest": "010424", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 163000}, {"id": "3120", "driver": "Bakri Hassan Akasha Khider", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.2, "dep": "2026-06-09", "eta": "", "manifest": "010415", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 164000}, {"id": "14686", "driver": "Sharif Idris Omer Abdalla", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.02, "dep": "2026-06-09", "eta": "", "manifest": "010399", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 165000}, {"id": "14690", "driver": "Abdelgadir Mohamoud Elshaikh", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.92, "dep": "2026-06-09", "eta": "", "manifest": "010385", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 166000}, {"id": "303", "driver": "Montaser Mohamed Ali", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.94, "dep": "2026-06-09", "eta": "", "manifest": "010388", "status": "Delivered", "notes": "Sheet: 6.8.2026", "ts": 167000}, {"id": "12732", "driver": "Shawarga Mabrhto Woldgrash", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.1, "dep": "2026-06-09", "eta": "", "manifest": "010409", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 168000}, {"id": "9316", "driver": "Alsadig Suliman Abdalla Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.94, "dep": "2026-06-09", "eta": "", "manifest": "010416", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 169000}, {"id": "9044", "driver": "Haytham Ahmed Mohamed Arbab", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.46, "dep": "2026-06-09", "eta": "", "manifest": "010414", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 170000}, {"id": "1354", "driver": "Amer Ahamad Noman Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.9, "dep": "2026-06-09", "eta": "", "manifest": "010365", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 171000}, {"id": "11579", "driver": "Issa Ahmed Ibrahim Adam", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.16, "dep": "2026-06-09", "eta": "", "manifest": "010408", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 172000}, {"id": "14693", "driver": "Mahajoub Abnaoof Mohamed Elgizoli", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.12, "dep": "2026-06-09", "eta": "", "manifest": "010411", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 173000}, {"id": "9075", "driver": "Abuelbashr Abdelwahab Eid Mohamed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.14, "dep": "2026-06-09", "eta": "", "manifest": "010412", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 174000}, {"id": "3113", "driver": "Tarig Mahgoub Ali", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.22, "dep": "2026-06-09", "eta": "", "manifest": "010417", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 175000}, {"id": "9043", "driver": "Mohamed Basheer Ayas Abdelmageed", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.14, "dep": "2026-06-09", "eta": "", "manifest": "010407", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 176000}, {"id": "9315", "driver": "Bakheit Elfadil Bakheit Mukhtar", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.82, "dep": "2026-06-09", "eta": "", "manifest": "010386", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 177000}, {"id": "12988", "driver": "Atta Almanan Mahmoud Hamid Baghdad", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.02, "dep": "2026-06-09", "eta": "", "manifest": "010400", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 178000}, {"id": "12733", "driver": "Abdelrahman Ali Abdelrahman Yousif", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.04, "dep": "2026-06-09", "eta": "", "manifest": "010369", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 179000}, {"id": "12734", "driver": "Abdalla Ahmed Ibrahim Daief", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.94, "dep": "2026-06-09", "eta": "", "manifest": "010118", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 180000}, {"id": "12877", "driver": "Hassan Aldaw Ibrahim Abdelmohsin", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.32, "dep": "2026-06-09", "eta": "", "manifest": "010421", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 181000}, {"id": "9312", "driver": "Ibrahim Hassan Nasr Saleh", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.0, "dep": "2026-06-09", "eta": "", "manifest": "010420", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 182000}, {"id": "14682", "driver": "Mohamed Hassan Ahmed Gaknoon", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.36, "dep": "2026-06-09", "eta": "", "manifest": "010391", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 183000}, {"id": "9306", "driver": "Sayed Ali Hashim Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.92, "dep": "2026-06-09", "eta": "", "manifest": "010426", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 184000}, {"id": "1357", "driver": "Ismael Fathi Ismael", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.62, "dep": "2026-06-10", "eta": "", "manifest": "0", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 185000}, {"id": "8285", "driver": "Abbas Babker Alhaj", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.2, "dep": "2026-06-10", "eta": "", "manifest": "010427", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 186000}, {"id": "9309", "driver": "Mujahid Elaagib Mohamed Osman", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.78, "dep": "2026-06-10", "eta": "", "manifest": "010406", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 187000}, {"id": "14687", "driver": "Saif Elyazal Rabieh Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 90.62, "dep": "2026-06-10", "eta": "", "manifest": "010418", "status": "Delivered", "notes": "Sheet: 6.9.2026", "ts": 188000}, {"id": "12730", "driver": "Hami Elshiekh Ahmed Ali", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 86.08, "dep": "2026-06-10", "eta": "", "manifest": "010349", "status": "Delivered", "notes": "Sheet: 6-10-2026", "ts": 189000}, {"id": "12209", "driver": "Sufyan Abdelgadir Albagir Alfaki", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 86.96, "dep": "2026-06-10", "eta": "", "manifest": "010326", "status": "Delivered", "notes": "Sheet: 6-10-2026", "ts": 190000}, {"id": "3117", "driver": "Elzibair Abdallah Elzibair MohamedAhmed", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 86.68, "dep": "2026-06-10", "eta": "", "manifest": "010348", "status": "Delivered", "notes": "Sheet: 6-10-2026", "ts": 191000}, {"id": "14695", "driver": "Isam Eldean Mahmoued Makki", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.4, "dep": "2026-06-10", "eta": "", "manifest": "010439", "status": "Delivered", "notes": "Sheet: 6-10-2026", "ts": 192000}, {"id": "9304", "driver": "Montaser Gariballah alsayed", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.28, "dep": "2026-06-10", "eta": "", "manifest": "010438", "status": "Delivered", "notes": "Sheet: 6-10-2026", "ts": 193000}, {"id": "14677", "driver": "Awad Suliman Abdelrahman Alsheikh", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 91.02, "dep": "2026-06-10", "eta": "", "manifest": "010124", "status": "Delivered", "notes": "Sheet: 6-10-2026", "ts": 194000}, {"id": "14694", "driver": "Ibrahim Adam Idress Ibrahim", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 88.48, "dep": "2026-06-10", "eta": "", "manifest": "010429", "status": "Delivered", "notes": "Sheet: 6-10-2026", "ts": 195000}, {"id": "14680", "driver": "Abbas Ali Saddan Argeel", "origin": "PZU", "dest": "Atbara", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.78, "dep": "2026-06-11", "eta": "", "manifest": "010347", "status": "Delivered", "notes": "Sheet: 6-10-2026", "ts": 196000}, {"id": "12203", "driver": "Ashraf Mohamed Issa Osman", "origin": "PZU", "dest": "Khartoum", "client": "SAYGA", "cargo": "WHEATRW01", "weight": 89.16, "dep": "2026-06-11", "eta": "", "manifest": "010425", "status": "Delivered", "notes": "Sheet: 6-10-2026", "ts": 197000}];
+
+let shipments = [];
+let charts = {};
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE));
+    shipments = s && s.length ? s : JSON.parse(JSON.stringify(SEED));
+  } catch(e) { shipments = JSON.parse(JSON.stringify(SEED)); }
+  renderAll();
+}
+
+function save() { localStorage.setItem(STORE, JSON.stringify(shipments)); }
+
+const SC = {
+  'Loading':   {cls:'loading',   ic:'ti-package',      grad:['#1A3F8F','#2E6FD9']},
+  'In Transit':{cls:'transit',   ic:'ti-truck',        grad:['#0D6E4A','#1A9E6A']},
+  'Delivered': {cls:'delivered', ic:'ti-circle-check', grad:['#085C4D','#0D8A72']},
+  'Delayed':   {cls:'delayed',   ic:'ti-alert-circle', grad:['#9B1F1F','#D94040']},
+  'Waiting':   {cls:'waiting',   ic:'ti-clock',        grad:['#92510A','#D97706']},
+};
+
+/* ---- HERO KPIs ---- */
+function renderHero() {
+  const t = shipments.length;
+  const tr = shipments.filter(x=>x.status==='In Transit').length;
+  const d = shipments.filter(x=>x.status==='Delivered').length;
+  const del = shipments.filter(x=>x.status==='Delayed').length;
+  const tw = shipments.reduce((s,x)=>s+(x.weight||0),0);
+  document.getElementById('hero-row').innerHTML = `
+    <div class="hcard hcard-blue"><div class="hcard-label">Total Trips</div><div class="hcard-val">${t}</div><div class="hcard-sub">June 2026</div><i class="ti ti-truck hcard-icon"></i></div>
+    <div class="hcard hcard-green"><div class="hcard-label">In Transit</div><div class="hcard-val">${tr}</div><div class="hcard-sub">Currently moving</div><i class="ti ti-road hcard-icon"></i></div>
+    <div class="hcard hcard-teal"><div class="hcard-label">Delivered</div><div class="hcard-val">${d}</div><div class="hcard-sub">${t?Math.round(d/t*100):0}% success rate</div><i class="ti ti-circle-check hcard-icon"></i></div>
+    <div class="hcard hcard-red"><div class="hcard-label">Delayed</div><div class="hcard-val">${del}</div><div class="hcard-sub">Requires attention</div><i class="ti ti-alert-circle hcard-icon"></i></div>
+    <div class="hcard hcard-amber"><div class="hcard-label">Total Weight</div><div class="hcard-val" style="font-size:26px">${(tw/1000).toFixed(1)}K</div><div class="hcard-sub">Metric tons loaded</div><i class="ti ti-weight hcard-icon"></i></div>
+  `;
+}
+
+/* ---- DAILY CHART ---- */
+function renderDailyChart() {
+  const byDate = {};
+  shipments.forEach(x => { if(x.dep) byDate[x.dep]=(byDate[x.dep]||0)+1; });
+  const labels = Object.keys(byDate).sort();
+  const vals = labels.map(d=>byDate[d]);
+  const ctx = document.getElementById('chart-daily').getContext('2d');
+  if(charts.daily) charts.daily.destroy();
+  charts.daily = new Chart(ctx,{
+    type:'bar',
+    data:{labels:labels.map(d=>d.slice(5)),datasets:[{
+      label:'Trips',data:vals,
+      backgroundColor:'rgba(46,111,217,0.75)',
+      borderColor:'#2E6FD9',borderWidth:1.5,
+      borderRadius:6,borderSkipped:false
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:t=>'Date: 2026-'+t[0].label}}},scales:{x:{grid:{display:false},ticks:{color:'#8FA3BE',font:{size:11}}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#8FA3BE',font:{size:11}},beginAtZero:true}}}
+  });
+}
+
+/* ---- STATUS DONUT ---- */
+function renderStatusChart() {
+  const counts = ['Delivered','In Transit','Loading','Delayed','Waiting'].map(s=>shipments.filter(x=>x.status===s).length);
+  const ctx = document.getElementById('chart-status').getContext('2d');
+  if(charts.status) charts.status.destroy();
+  charts.status = new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:['Delivered','In Transit','Loading','Delayed','Waiting'],
+      datasets:[{data:counts,backgroundColor:['#0D8A72','#1A9E6A','#2E6FD9','#D94040','#D97706'],borderWidth:2,borderColor:'#fff',hoverOffset:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'bottom',labels:{font:{size:11},color:'#455A7A',boxWidth:10,padding:10}}}}
+  });
+}
+
+/* ---- ROUTE TABLE ---- */
+function renderRouteTable() {
+  const routes = {};
+  shipments.forEach(x=>{
+    const k = x.origin+' → '+x.dest;
+    if(!routes[k]) routes[k]={trips:0,weight:0};
+    routes[k].trips++;
+    routes[k].weight+=x.weight||0;
+  });
+  const total = shipments.length;
+  const sorted = Object.entries(routes).sort((a,b)=>b[1].trips-a[1].trips);
+  const maxT = sorted[0]?.[1]?.trips||1;
+  document.getElementById('route-tbody').innerHTML = sorted.map(([r,v])=>`
+    <tr>
+      <td>${r}</td>
+      <td><b>${v.trips}</b></td>
+      <td>${v.weight.toFixed(1)}</td>
+      <td>${(v.weight/v.trips).toFixed(2)}</td>
+      <td><div class="rbar-wrap"><div class="rbar" style="width:${Math.round(v.trips/maxT*100)}%"></div></div></td>
+    </tr>`).join('');
+}
+
+/* ---- FILTERS ---- */
+function renderFilters() {
+  const routes = [...new Set(shipments.map(x=>x.origin+' → '+x.dest))].sort();
+  const dates = [...new Set(shipments.map(x=>x.dep).filter(Boolean))].sort().reverse();
+  const rs=document.getElementById('filter-route'),cv=rs.value;
+  rs.innerHTML='<option value="">All routes</option>'+routes.map(r=>`<option ${cv===r?'selected':''}>${r}</option>`).join('');
+  const ds=document.getElementById('filter-date'),cd=ds.value;
+  ds.innerHTML='<option value="">All dates</option>'+dates.map(d=>`<option ${cd===d?'selected':''}>${d}</option>`).join('');
+}
+
+/* ---- CARDS ---- */
+function renderCards() {
+  const q=(document.getElementById('search-input').value||'').toLowerCase();
+  const fs=document.getElementById('filter-status').value;
+  const fr=document.getElementById('filter-route').value;
+  const fd=document.getElementById('filter-date').value;
+  let list=shipments.filter(x=>{
+    if(fs&&x.status!==fs)return false;
+    if(fr&&x.origin+' → '+x.dest!==fr)return false;
+    if(fd&&x.dep!==fd)return false;
+    if(q&&!(x.id.toLowerCase().includes(q)||x.driver.toLowerCase().includes(q)||x.origin.toLowerCase().includes(q)||x.dest.toLowerCase().includes(q)||(x.manifest||'').toLowerCase().includes(q)))return false;
+    return true;
+  }).sort((a,b)=>b.ts-a.ts);
+  document.getElementById('count-pill').textContent=list.length;
+  const g=document.getElementById('truck-grid');
+  if(!list.length){g.innerHTML='<div class="empty"><i class="ti ti-truck-off"></i><p>No shipments match</p></div>';return;}
+  g.innerHTML=list.map(x=>{
+    const c=SC[x.status]||SC['Delivered'];
+    return `<div class="truck-card">
+      <div class="cicon ic-${c.cls}"><i class="ti ${c.ic}" style="font-size:20px"></i></div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="truck-id">Truck #${x.id}</span>
+          <span class="badge s-${c.cls}">${x.status}</span>
+          ${x.manifest&&x.manifest!=='Abo Hamad Route'?`<span style="font-size:11px;color:var(--text3);background:var(--bg);padding:2px 8px;border-radius:20px">Manifest: ${x.manifest}</span>`:''}
+        </div>
+        <div class="truck-route"><i class="ti ti-user" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>${x.driver}&nbsp;·&nbsp;<i class="ti ti-map-pin" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>${x.origin} → ${x.dest}</div>
+        <div class="truck-meta">
+          ${x.cargo?`<span class="mi"><b>Cargo:</b> ${x.cargo}</span>`:''}
+          ${x.weight?`<span class="mi"><b>Weight:</b> ${x.weight} MT</span>`:''}
+          ${x.client?`<span class="mi"><b>Client:</b> ${x.client}</span>`:''}
+          ${x.dep?`<span class="mi"><b>Date:</b> ${x.dep}</span>`:''}
+        </div>
+      </div>
+      <div class="cright">
+        <button class="del-btn" onclick="delEntry('${x.id}',${x.ts})" title="Delete"><i class="ti ti-trash" style="font-size:16px"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAll(){renderHero();renderDailyChart();renderStatusChart();renderRouteTable();renderFilters();renderCards();}
+
+function switchTab(t){
+  ['dashboard','tracker','upload'].forEach(v=>{
+    document.getElementById('view-'+v).style.display=v===t?'':'none';
+  });
+  document.querySelectorAll('.tnav-btn,.mobtab').forEach(el=>{
+    el.classList.toggle('active',el.textContent.trim().toLowerCase().includes(
+      t==='dashboard'?'dash':t==='tracker'?'ship':t==='upload'?'add':t
+    ));
+  });
+  if(t==='dashboard'){renderDailyChart();renderStatusChart();}
+}
+
+function toast(msg){
+  document.getElementById('toast-msg').textContent=msg;
+  const t=document.getElementById('toast');
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+function submitEntry(){
+  const id=document.getElementById('f-id').value.trim();
+  const driver=document.getElementById('f-driver').value.trim();
+  const origin=document.getElementById('f-origin').value.trim();
+  const dest=document.getElementById('f-dest').value.trim();
+  if(!id||!driver||!origin||!dest){toast('Please fill required fields');return;}
+  const entry={id,driver,origin,dest,
+    status:document.getElementById('f-status').value,
+    cargo:document.getElementById('f-cargo').value.trim(),
+    weight:parseFloat(document.getElementById('f-weight').value)||0,
+    client:document.getElementById('f-client').value.trim(),
+    dep:document.getElementById('f-dep').value,
+    manifest:document.getElementById('f-manifest').value.trim(),
+    eta:'',notes:document.getElementById('f-notes').value.trim(),ts:Date.now()
+  };
+  const idx=shipments.findIndex(x=>x.id===id&&x.dep===entry.dep);
+  if(idx>-1)shipments[idx]=entry;else shipments.push(entry);
+  save();renderAll();
+  ['f-id','f-driver','f-origin','f-dest','f-cargo','f-weight','f-manifest','f-notes'].forEach(f=>document.getElementById(f).value='');
+  document.getElementById('f-dep').value='';
+  document.getElementById('f-status').value='Delivered';
+  toast('Shipment saved!');
+  switchTab('dashboard');
+}
+
+function delEntry(id,ts){
+  if(!confirm('Delete truck #'+id+'?'))return;
+  shipments=shipments.filter(x=>!(x.id===id&&x.ts===ts));
+  save();renderAll();toast('Deleted');
+}
+
+load();
+</script>
+</body>
+</html>
